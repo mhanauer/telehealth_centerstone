@@ -148,7 +148,9 @@ how satisfied are you with your personal relationships? RelationshipSatisfaction
 ```{r}
 ### Just look at satisfaction
 IN_IL_dat_wide_sat = IN_IL_dat_wide[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y")]
-IN_IL_dat_wide_sat
+
+### All items should be 1 to five
+apply(IN_IL_dat_wide_sat,2, function(x){describe.factor(x)})
 library(psych)
 
 omega_sat_base =  omega(IN_IL_dat_wide_sat[c(2,4,6,8)], poly = TRUE)
@@ -206,12 +208,74 @@ mean_sd_sat
 month_6_sat_d =  cohen.d(IN_IL_dat_wide_sat_month6_complete$total_month6, group = IN_IL_dat_wide_sat_month6_complete$telehealth.y)
 results = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
 write.csv(results, "results.csv", row.names = FALSE)
-
+results
 ```
+######################################
+Next section
+Dealing with everyday life with mental health illness
+
+a.	I deal effectively with daily problems.
+b.	I am able to control my life.
+c.	I am able to deal with crisis.
+d.	I am getting along with my family.
+e.	I do well in social situations.
+f.	I do well in school and/or work.
+g.	My housing situation is satisfactory.
+h.	My symptoms are not bothering me.
+
+####################################################
+Feeling in last 30 days
+During the past 30 days, about how often did you feel …
+a.	nervous?
+b.	hopeless?
+c.	restless or fidgety?
+d.	so depressed that nothing could cheer you up?
+e.	that everything was an effort?
+f.	worthless?
+
+###############################
+5.	The following questions ask about how you have been feeling during the last 4 weeks
+In the last 4 weeks …
+
+
+#######################
+
+6.	The following questions relate to your experience with alcohol, cigarettes, and other drugs. Some of the substances we’ll talk about are prescribed by a doctor (like pain medications). But I will only record those if you have taken them for reasons or in doses other than prescribed.
+
+In the past 30 days, how often have you used …
+
+a.	tobacco products (cigarettes, chewing tobacco, cigars, etc.)?
+b.	alcoholic beverages (beer, wine, liquor, etc.)?
+In the past 30 days, how often have you used …
+k.	prescription opioids (fentanyl, oxycodone [OxyContin, Percocet], hydrocodone [Vicodin], methadone, buprenorphine, etc.)?
+j.	street opioids (heroin, opium, etc.)?
+
+##################################
+VIOLENCE AND TRAUMA 
+10.	Did any of these experiences feel so frightening, horrible, or upsetting that in the past and/or the present you:
+a.	Have had nightmares about it or thought about it when you did not want to?
+b.	Tried hard not to think about it or went out of your way to avoid situations that remind you of it?
+c.	Were constantly on guard, watchful, or easily startled?
+d.	Felt numb and detached from others, activities, or your surroundings?
+
+#################
+PERCEPTION OF CARE
+1.	In order to provide the best possible mental health and related services, we need to know what you think about the services you received during the past 30 days, the people who provided it, and the results. Please indicate your disagreement/agreement with each of the following statements.
+a.	Staff here believe that I can grow, change, and recover.
+b.	I felt free to complain.
+c.	I was given information about my rights.
+d.	Staff encouraged me to take responsibility for how I live my life.
+e.	Staff told me what side effects to watch out for.
+f.	Staff respected my wishes about who is and who is not to be given information about my treatment.
+g.	Staff were sensitive to my cultural background (race, religion, language, etc.).
+h.	Staff helped me obtain the information I needed so that I could take charge of managing my illness.
+i.	I was encouraged to use consumer-run programs (support groups, drop-in centers, crisis phone line, etc.).
+j.	I felt comfortable asking questions about my treatment and medication.
+a.	I, not staff, decided my treatment goals.
+b.	I like the services I received here.
+c.	If I had other choices, I would still get services from this agency.
+d.	I would recommend this agency to a friend or family member.
 
 
 
-
-
-Next step is load up the data 
 
