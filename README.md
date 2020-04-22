@@ -25,9 +25,9 @@ For assessment see below 3-months is actually vitals and so on
 
 Assessment: 
 0600 = Baseline Assessment
-0301 = 3 Month Reassessment
+0301 = 3 Month Reassessment (vitals)
 0302 = 6 Month Reassessment
-0303 = 9 Month Reassessment
+0303 = 9 Month Reassessment (vitals)
 0304 = 12 Month Reassessment
 0699 = clincial discharge
 
@@ -43,94 +43,101 @@ Now review the missing data
 Only include Baseline and 6-month
 telehealth.y means they were in telehealth at 6 months which is what we want
 
+# Data mergeing
+For CCBHC IN, IL all the same
+For FHHC first 186 variables are the same
+
+telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with any assessment date on or after 4-2-2020
+
+### Run this prior to any analysis to load data ####
 ```{r}
+library(lubridate)
+library(prettyR)
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
 IL =  read.csv("CCBHC_IL_4_14_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 IN =  read.csv("CCBHC_IN_4_15_20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-
+IN_fhhc = read.csv("fhhc_noms_4_22_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 dim(IN)
 dim(IL)
+dim(IN_fhhc)
 
-## State
-IN$state = rep(1, length(IN$ConsumerID))
-IL$state = rep(0, length(IL$ConsumerID))
-
-### Adult and youth
-IN$adult_youth = ifelse(IN$GrantID == "SM81852", 1, 0)
-IL$adult_youth = ifelse(IL$GrantID == "SM81851", 1, 0)
 
 ## Now stack them
 IN_IL = rbind(IN, IL)
 dim(IN_IL)
+head(IN_IL[,c(1:185)])
+IN_IL_fhhc = IN_IL[,1:185]
+dim(IN_IL_fhhc)
+IN_fhhc = IN_fhhc[,1:185]
+dim(IN_fhhc)
+IN_IL_fhhc = rbind(IN_IL_fhhc, IN_fhhc)
+### Figure out how you can stack FHHC data
 
 
-IN_IL_dat = IN_IL
-describe.factor(IN_IL_dat$Assessment)
+
+telehealth_noms = IN_IL_fhhc
+describe.factor(telehealth_noms$Assessment)
 ## Rename to the above
 
 ## No one has multiple reassessments
-describe.factor(IN_IL_dat$ReassessmentNumber_07)
+describe.factor(telehealth_noms$ReassessmentNumber_07)
 ## Reorder data
-IN_IL_dat = IN_IL_dat[order(IN_IL_dat$ConsumerID),]
+telehealth_noms = telehealth_noms[order(telehealth_noms$ConsumerID),]
 
 ## Create recoded assessment variable
-IN_IL_dat$Assessment_new = ifelse(IN_IL_dat$Assessment == 600, 0, ifelse(IN_IL_dat$Assessment == 301, 1, ifelse(IN_IL_dat$Assessment == 302, 2, ifelse(IN_IL_dat$Assessment == 303, 3, ifelse(IN_IL_dat$Assessment == 304, 4, ifelse(IN_IL_dat$Assessment == 699,5, "Wrong"))))))
-describe.factor(IN_IL_dat$Assessment_new, decr.order= FALSE)
+telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 304, 4, ifelse(telehealth_noms$Assessment == 699,5, "Wrong"))))))
+describe.factor(telehealth_noms$Assessment_new, decr.order= FALSE)
 
 ### Create full date variable
+telehealth_noms$date = paste0(telehealth_noms$FFY, "-", telehealth_noms$Month, "-", "01")
+telehealth_noms$date = ymd(telehealth_noms$date)
+head(telehealth_noms$date)
 
-IN_IL_dat$date = paste0(IN_IL_dat$FFY, "-", IN_IL_dat$Month, "-", "01")
-IN_IL_dat$date = ymd(IN_IL_dat$date)
-head(IN_IL_dat$date)
-
-IN_IL_dat$telehealth = ifelse(IN_IL_dat$date >= "2020-04-01", 1, 0)
-IN_IL_dat[c("date","telehealth")]
+telehealth_noms$telehealth = ifelse(telehealth_noms$date >= "2020-04-01", 1, 0)
+telehealth_noms[c("date","telehealth")]
 ### Cannot be greater than 2020-09-30 last day of grant
-IN_IL_dat = subset(IN_IL_dat, date < "2020-09-30")
-IN_IL_dat[c("date","telehealth")]
-dim(IN_IL_dat)
+telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
+telehealth_noms[c("date","telehealth")]
+dim(telehealth_noms)
 
 
 ### Create a NOMS data set  
-IN_IL_noms = subset(IN_IL_dat, Assessment_new == 0 | Assessment_new == 2 | Assessment_new == 4)
+telehealth_noms = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2 | Assessment_new == 4)
 describe.factor(IN_IL_noms$Assessment_new)
 #### Create a vitals data set
-IN_IL_vital = subset(IN_IL_dat, Assessment_new == 0 | Assessment_new == 2)
+IN_IL_vital = subset(telehealth_noms, Assessment_new == 1 | Assessment_new == 3)
 
 
 ####################
 library(naniar)
-miss_var_summary(IN_IL_dat)
+miss_var_summary(telehealth_noms)
 
 ### Just grab a few and see what the descriptives are like
 #Alcohol_Use
 #PsychologicalEmotionalProblems, EnoughEnergyForEverydayLife, Depressed
-#IN_IL_dat_sub_count = IN_IL_noms[c("ConsumerID", "Assessment_new", "NightsHospitalMHC", "NightsDetox", "telehealth", "date")]
-head(IN_IL_dat)
-miss_var_summary(subset(IN_IL_noms, Assessment_new == 2))
-miss_var_summary(subset(IN_IL_noms, Assessment_new == 0))
+#telehealth_noms_sub_count = IN_IL_noms[c("ConsumerID", "Assessment_new", "NightsHospitalMHC", "NightsDetox", "telehealth", "date")]
+head(telehealth_noms)
+miss_var_summary(subset(telehealth_noms, Assessment_new == 2))
+miss_var_summary(subset(telehealth_noms, Assessment_new == 0))
 
-IN_IL_dat_wide = subset(IN_IL_noms, Assessment_new <=2)
-describe.factor(IN_IL_dat_wide$Assessment_new)
-describe.factor(IN_IL_dat_wide$telehealth)
+telehealth_noms_wide = subset(telehealth_noms, Assessment_new <=2)
+describe.factor(telehealth_noms_wide$Assessment_new)
+describe.factor(telehealth_noms_wide$telehealth)
 
 ### These people have two baselines delete them 'A00276''A00295''A00298'
-IN_IL_dat_wide_test = subset(IN_IL_dat_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
-IN_IL_dat_wide[c(276,293, 298), c(1,7)]
-IN_IL_dat_wide = IN_IL_dat_wide[-c(276,293, 298),] 
+telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
+telehealth_noms_wide[c(276,293, 298), c(1,7)]
+telehealth_noms_wide = telehealth_noms_wide[-c(276,293, 298),] 
 
-IN_IL_dat_base_noms = subset(IN_IL_dat_wide,Assessment_new == 0)
-IN_IL_dat_month6_noms = subset(IN_IL_dat_wide,Assessment_new == 2)
-head(IN_IL_dat_base_noms)
-dim(IN_IL_dat_month6_noms)
-IN_IL_dat_wide_noms = merge(IN_IL_dat_base_noms, IN_IL_dat_month6_noms, by = "ConsumerID", all.y = TRUE)
-dim(IN_IL_dat_wide_noms)
-
+telehealth_noms_base_noms = subset(telehealth_noms_wide,Assessment_new == 0)
+telehealth_noms_month6_noms = subset(telehealth_noms_wide,Assessment_new == 2)
+head(telehealth_noms_base_noms)
+dim(telehealth_noms_month6_noms)
+telehealth_noms_wide_noms = merge(telehealth_noms_base_noms, telehealth_noms_month6_noms, by = "ConsumerID", all.y = TRUE)
+dim(telehealth_noms_wide_noms)
 ```
 Data set descriptives
-IN_IL_noms = IN and IL for the NOMS data across baseline, 6-month, and 12 month including both adults and youth
-IN_IL_vitals = IN and IL vital data across 3-months and 9-months included both adults and youth
-IN_IL_dat_wide_noms = IN and IL NOMS data for baseline and 6-month matched pairs
+telehealth_noms_wide_noms = CCBHC IN and IL both adults and youth, FFHC NOMS data for baseline and 6-month matched pairs 
 ### Finish this later
 
 ################################################
@@ -145,71 +152,98 @@ c.	how satisfied are you with your ability to perform your daily living activiti
 d.	how satisfied are you with your health? HealthSatisfaction
 how satisfied are you with yourself? SelfSatisfaction
 how satisfied are you with your personal relationships? RelationshipSatisfaction
-```{r}
-### Just look at satisfaction
-IN_IL_dat_wide_sat = IN_IL_dat_wide[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y")]
 
-### All items should be 1 to five
-apply(IN_IL_dat_wide_sat,2, function(x){describe.factor(x)})
+### General instructions ####
+1. Grab the variable you want and put into data frame
+2. Check the descriptives to make sure everything is in range
+3. Conduct psychometrics 
+
+telehealth.y: 1 = client had a 6-month reassessment during telehealth, 0 = client had a 6-month reassessment pre-telehealth
+.x = data from baseline
+.y = data from 6-month reassessment
+
+```{r}
+### All items should be 1 to 5
+telehealth_noms_wide_noms_sat = telehealth_noms_wide_noms[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y")]
+apply(telehealth_noms_wide_noms_sat,2, function(x){describe.factor(x)})
 library(psych)
 
-omega_sat_base =  omega(IN_IL_dat_wide_sat[c(2,4,6,8)], poly = TRUE)
-omega_sat_6month =  omega(IN_IL_dat_wide_sat[c(3,5,7,9)], poly = TRUE)
+### Plug in all the .x variables 
+omega_sat_base =  omega(telehealth_noms_wide_noms_sat[c(2,4,6,8)], poly = TRUE)
+### Plug in all the .y variables except telehealth.y 
+omega_sat_6month =  omega(telehealth_noms_wide_noms_sat[c(3,5,7,9)], poly = TRUE)
 omega_sat_6month
-vss(IN_IL_dat_wide_sat[c(2,4,6,8)], cor = "poly")
-fa(IN_IL_dat_wide_sat[c(2,4,6,8)], cor = "poly", correct = 0)
 
-vss(IN_IL_dat_wide_sat[c(3,5,7,9)], cor = "poly")
-fa(IN_IL_dat_wide_sat[c(3,5,7,9)], cor = "poly", correct = 0)
+### Plug in all the .x variables 
+vss(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly")
+fa(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly", correct = 0)
+
+### Plug in all the .y variables except telehealth.y 
+vss(telehealth_noms_wide_noms_sat[c(3,5,7,9)], cor = "poly")
+fa(telehealth_noms_wide_noms_sat[c(3,5,7,9)], cor = "poly", correct = 0)
 ```
-Create a total score for each and then difference and then t or wilcox test
+Create a total score for each 
 
-IN_IL_dat_wide_sat_month6_complete  = satisfaction scores only with complete data
+IN_IL_dat_wide_noms_sat_month6_complete  = satisfaction total scores only with complete data for 6-month
 ```{r}
-IN_IL_dat_wide_sat$total_base = apply(IN_IL_dat_wide_sat[c(2,4,6,8)], 1, mean, na.rm = TRUE)
-IN_IL_dat_wide_sat$total_month6 = apply(IN_IL_dat_wide_sat[c(3,5,7,9)], 1, mean, na.rm = TRUE)
-hist(IN_IL_dat_wide_sat$total_base)
-hist(IN_IL_dat_wide_sat$total_month6)
-## Now create total score diff score
- 
-IN_IL_dat_wide_sat$total_sat_diff = IN_IL_dat_wide_sat$total_month6 -  IN_IL_dat_wide_sat$total_base
-hist(IN_IL_dat_wide_sat$total_sat_diff)
-IN_IL_dat_wide_sat$total_sat_diff_scale = scale(IN_IL_dat_wide_sat$total_sat_diff)
-hist(IN_IL_dat_wide_sat$total_sat_diff_scale)
-IN_IL_dat_wide_sat[c("telehealth.y", "total_sat_diff_scale")]
-
+### Plug in all .x variables
+telehealth_noms_wide_noms_sat$total_base = apply(telehealth_noms_wide_noms_sat[c(2,4,6,8)], 1, mean, na.rm = TRUE)
+### Plug in all .y expect for telehealth.y
+telehealth_noms_wide_noms_sat$total_month6 = apply(telehealth_noms_wide_noms_sat[c(3,5,7,9)], 1, mean, na.rm = TRUE)
+hist(telehealth_noms_wide_noms_sat$total_base)
+hist(telehealth_noms_wide_noms_sat$total_month6)
 
 ## No data for difference scores so try just 6months
-range(IN_IL_dat_wide_sat$total_month6, na.rm = TRUE)
-dim(IN_IL_dat_wide_sat)
-head(IN_IL_dat_wide_sat)
-IN_IL_dat_wide_sat_month6_complete = na.omit(IN_IL_dat_wide_sat[c("total_month6", "telehealth.y")])
-dim(IN_IL_dat_wide_sat_month6_complete)
-IN_IL_dat_wide_sat_month6_complete
+range(telehealth_noms_wide_noms_sat$total_month6, na.rm = TRUE)
+dim(telehealth_noms_wide_noms_sat)
+head(telehealth_noms_wide_noms_sat)
+telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y")])
+dim(telehealth_noms_wide_noms_sat_month6_complete)
+telehealth_noms_wide_noms_sat_month6_complete
 
 
 ```
 Analysis sat
 Percentage change: https://stats.idre.ucla.edu/sas/faq/how-can-i-interpret-log-transformed-variables-in-terms-of-percent-change-in-linear-regression/
-
-You need to expondiate the variable
+  
+You need to expondiate the parameter estimate
 Doesn't work to well when you get above 20% differences: https://people.duke.edu/~rnau/411log.htm
 
+P-change is bad for regression because of: 
+(3-2)/2 
+(2-3)/3
+
 ```{r}
-describe.factor(IN_IL_dat_wide_sat_month6_complete$telehealth.y)
-n_total = dim(IN_IL_dat_wide_sat_month6_complete)[1]
-bayes_p_change_sat = stan_glm(log(total_month6)~ telehealth.y, data = IN_IL_dat_wide_sat_month6_complete, seed = 123)
+library(rstanarm)
+library(descr)
+describe.factor(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
+n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
+## Take log of outcome to get percentage change interpretation
+bayes_p_change_sat = stan_glm(log(total_month6)~ telehealth.y, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_sat_sum = round(bayes_p_change_sat$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
 bayes_p_change_sat_sum = round(exp(bayes_p_change_sat_sum),3)
+### Creates a percentage instead 1 + % 
 bayes_p_change_sat_sum= bayes_p_change_sat_sum - 1
 bayes_p_change_sat_sum
-mean_sd_sat= round(compmeans(IN_IL_dat_wide_sat_month6_complete$total_month6, IN_IL_dat_wide_sat_month6_complete$telehealth.y))
+
+### Grabing the means, sds, and n's for each group
+mean_sd_sat= round(compmeans(telehealth_noms_wide_noms_sat_month6_complete$total_month6, telehealth_noms_wide_noms_sat_month6_complete$telehealth.y))
 mean_sd_sat
-month_6_sat_d =  cohen.d(IN_IL_dat_wide_sat_month6_complete$total_month6, group = IN_IL_dat_wide_sat_month6_complete$telehealth.y)
-results = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
-write.csv(results, "results.csv", row.names = FALSE)
-results
+### Get freq cohen's D, because I don't know how to get bayes cohen's D
+month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_month6, group = telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
+
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
+write.csv(results_sat, "results.csv", row.names = FALSE)
+results_sat
+
 ```
+
+
+
 ######################################
 Next section
 Dealing with everyday life with mental health illness
@@ -223,6 +257,11 @@ f.	I do well in school and/or work.
 g.	My housing situation is satisfactory.
 h.	My symptoms are not bothering me.
 
+```{r}
+
+```
+
+
 ####################################################
 Feeling in last 30 days
 During the past 30 days, about how often did you feel …
@@ -232,10 +271,9 @@ c.	restless or fidgety?
 d.	so depressed that nothing could cheer you up?
 e.	that everything was an effort?
 f.	worthless?
+```{r}
 
-###############################
-5.	The following questions ask about how you have been feeling during the last 4 weeks
-In the last 4 weeks …
+```
 
 
 #######################
@@ -249,6 +287,11 @@ b.	alcoholic beverages (beer, wine, liquor, etc.)?
 In the past 30 days, how often have you used …
 k.	prescription opioids (fentanyl, oxycodone [OxyContin, Percocet], hydrocodone [Vicodin], methadone, buprenorphine, etc.)?
 j.	street opioids (heroin, opium, etc.)?
+```{r}
+
+```
+
+
 
 ##################################
 VIOLENCE AND TRAUMA 
@@ -257,6 +300,10 @@ a.	Have had nightmares about it or thought about it when you did not want to?
 b.	Tried hard not to think about it or went out of your way to avoid situations that remind you of it?
 c.	Were constantly on guard, watchful, or easily startled?
 d.	Felt numb and detached from others, activities, or your surroundings?
+```{r}
+
+```
+
 
 #################
 PERCEPTION OF CARE
@@ -275,7 +322,11 @@ a.	I, not staff, decided my treatment goals.
 b.	I like the services I received here.
 c.	If I had other choices, I would still get services from this agency.
 d.	I would recommend this agency to a friend or family member.
+```{r}
 
+```
+
+Vitals
 
 
 
