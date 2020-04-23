@@ -241,15 +241,17 @@ write.csv(results_sat, "results.csv", row.names = FALSE)
 results_sat
 
 ```
-
-
+##################### 
+Follow the code above and plug in the variables below instead of the variable above
+Post to github as your name patch-1,2,3...n (however, many patchs you have).  Let Matt know when you are finished.
+Or just save code on telehealth folder on T drive
 
 ######################################
 Next section
 Dealing with everyday life with mental health illness
 
 a.	I deal effectively with daily problems.
-b.	I am able to control my life.
+b.	I am able to control my life. T\CRI_Research\telehealth_evaluation
 c.	I am able to deal with crisis.
 d.	I am getting along with my family.
 e.	I do well in social situations.
@@ -258,6 +260,7 @@ g.	My housing situation is satisfactory.
 h.	My symptoms are not bothering me.
 
 ```{r}
+
 
 ```
 
