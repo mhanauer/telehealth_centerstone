@@ -216,10 +216,13 @@ P-change is bad for regression because of:
 ```{r}
 library(rstanarm)
 library(descr)
+### Scale is 1/3 of the adjusted prior
+my_prior = normal(location = 0, scale = .72/3, autoscale = FALSE)
+
 describe.factor(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
 n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
 ## Take log of outcome to get percentage change interpretation
-bayes_p_change_sat = stan_glm(log(total_month6)~ telehealth.y, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
+bayes_p_change_sat = stan_glm(log(total_month6)~ telehealth.y, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_sat_sum = round(bayes_p_change_sat$stan_summary[,c(1,3,4,10)],4)
@@ -239,6 +242,8 @@ month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_mon
 results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
 write.csv(results_sat, "results.csv", row.names = FALSE)
 results_sat
+prior_summary(bayes_p_change_sat)
+
 
 ```
 ##################### 
