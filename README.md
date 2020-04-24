@@ -83,7 +83,7 @@ describe.factor(telehealth_noms$Assessment)
 describe.factor(telehealth_noms$ReassessmentNumber_07)
 ## Reorder data
 telehealth_noms = telehealth_noms[order(telehealth_noms$ConsumerID),]
-
+describe.factor(telehealth_noms$Assessment)
 ## Create recoded assessment variable
 telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 304, 4, ifelse(telehealth_noms$Assessment == 699,5, "Wrong"))))))
 describe.factor(telehealth_noms$Assessment_new, decr.order= FALSE)
@@ -97,6 +97,7 @@ telehealth_noms$telehealth = ifelse(telehealth_noms$date >= "2020-04-01", 1, 0)
 telehealth_noms[c("date","telehealth")]
 ### Cannot be greater than 2020-09-30 last day of grant
 telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
+## Check that all dates post 2000
 telehealth_noms[c("date","telehealth")]
 dim(telehealth_noms)
 
@@ -239,19 +240,29 @@ mean_sd_sat
 month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_month6, group = telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
 
 ### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat to whatever you are measuring results_(fill in name)
 results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
+
 write.csv(results_sat, "results.csv", row.names = FALSE)
 results_sat
 prior_summary(bayes_p_change_sat)
 
 
 ```
+#################
+Code from Github
+1. Grab code from master branch
+
+
 ##################### 
 Follow the code above and plug in the variables below instead of the variable above
 Post to github as your name patch-1,2,3...n (however, many patchs you have).  Let Matt know when you are finished.
 Or just save code on telehealth folder on T drive
 
 ######################################
+
+######Cat
+
 Next section
 Dealing with everyday life with mental health illness
 
@@ -269,7 +280,7 @@ h.	My symptoms are not bothering me.
 
 ```
 
-
+####Jess
 ####################################################
 Feeling in last 30 days
 During the past 30 days, about how often did you feel …
