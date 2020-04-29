@@ -92,13 +92,16 @@ dim(IN_IL_CCBHC)
 IN_IL_CCBHC = IN_IL_CCBHC[,1:185]
 dim(IN_IL_CCBHC)
 FHHC = FHHC[,1:185]
-dim(FFHC)
 ICP = ICP[,1:185]
 dim(ICP)
-
+dim(SOCAT)
 ### Add grant ID
-IN_IL_CCBHC$grant = rep(IN_IL_CCBHC, dim(IN_IL_CCBHC)[1])
-
+IN_IL_CCBHC$grant = rep("IN_IL_CCBHC", dim(IN_IL_CCBHC)[1])
+FHHC$grant = rep("FHHC", dim(FHHC)[1])
+ICP$grant = rep("ICP", dim(ICP)[1])
+SOCAT$grant = rep("SOCAT", dim(SOCAT)[1])
+dim(SOCAT)
+dim(IN_IL_CCBHC)
 telehealth_noms = rbind(IN_IL_CCBHC, FHHC, ICP, SOCAT)
 ### Figure out how you can stack FHHC data
 dim(telehealth_noms)
@@ -109,12 +112,16 @@ describe.factor(telehealth_noms$Assessment)
 ## No one has multiple reassessments
 describe.factor(telehealth_noms$ReassessmentNumber_07)
 ## Reorder data
-telehealth_noms = telehealth_noms[order(telehealth_noms$ConsumerID),]
 describe.factor(telehealth_noms$Assessment)
+
+telehealth_noms_test = telehealth_noms[c("Assessment", "grant")]
+telehealth_noms_test
 ## Create recoded assessment variable
 telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 304, 4, ifelse(telehealth_noms$Assessment == 699,5, "Wrong"))))))
 describe.factor(telehealth_noms$Assessment_new, decr.order= FALSE)
 
+telehealth_noms_test = telehealth_noms[c("Assessment_new", "grant")]
+telehealth_noms_test
 ### Create full date variable
 telehealth_noms$date = paste0(telehealth_noms$FFY, "-", telehealth_noms$Month, "-", "01")
 telehealth_noms$date = ymd(telehealth_noms$date)
@@ -128,16 +135,14 @@ telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
 telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
 telehealth_noms[c("date","telehealth")]
 dim(telehealth_noms)
-
+describe.factor(telehealth_noms$grant)
 
 ### Create a NOMS data set  
-n_pre_sub = dim(telehealth_noms)[1]
 telehealth_noms = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2 | Assessment_new == 4)
 dim(telehealth_noms)[1]
-describe.factor(IN_IL_noms$Assessment_new)
 #### Create a vitals data set
 IN_IL_vital = subset(telehealth_noms, Assessment_new == 1 | Assessment_new == 3)
-
+describe.factor(telehealth_noms$grant)
 
 ####################
 library(naniar)
@@ -154,7 +159,7 @@ miss_var_summary(subset(telehealth_noms, Assessment_new == 0))
 telehealth_noms_wide = subset(telehealth_noms, Assessment_new <=2)
 describe.factor(telehealth_noms_wide$Assessment_new)
 describe.factor(telehealth_noms_wide$telehealth)
-
+describe.factor(telehealth_noms_wide$grant)
 ### These people have two baselines delete them 'A00276''A00295''A00298'
 telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
 telehealth_noms_wide[c(276,293, 298), c(1,7)]
@@ -162,10 +167,12 @@ telehealth_noms_wide = telehealth_noms_wide[-c(276,293, 298),]
 
 telehealth_noms_base_noms = subset(telehealth_noms_wide,Assessment_new == 0)
 telehealth_noms_month6_noms = subset(telehealth_noms_wide,Assessment_new == 2)
+describe.factor(telehealth_noms_month6_noms$grant)
 head(telehealth_noms_base_noms)
 dim(telehealth_noms_month6_noms)
 telehealth_noms_wide_noms = merge(telehealth_noms_base_noms, telehealth_noms_month6_noms, by = "ConsumerID", all.y = TRUE)
 dim(telehealth_noms_wide_noms)
+describe.factor(telehealth_noms_wide_noms$grant.y)
 ```
 Data set descriptives
 telehealth_noms_wide_noms = CCBHC IN and IL both adults and youth, FFHC NOMS data for baseline and 6-month matched pairs 
