@@ -56,26 +56,53 @@ library(prettyR)
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
 IL =  read.csv("CCBHC_IL_4_14_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 IN =  read.csv("CCBHC_IN_4_15_20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-IN_fhhc = read.csv("fhhc_noms_4_22_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-dim(IN)
-dim(IL)
-dim(IN_fhhc)
-
-
+FHHC = read.csv("fhhc_noms_4_22_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+ICP = read.csv("ICP_NOMS_Data Download 4.24.2020.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+SOCAT = read.csv("SOCAT NOMs download 4.27.20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 ## Now stack them
-IN_IL = rbind(IN, IL)
-dim(IN_IL)
-head(IN_IL[,c(1:185)])
-IN_IL_fhhc = IN_IL[,1:185]
-dim(IN_IL_fhhc)
-IN_fhhc = IN_fhhc[,1:185]
-dim(IN_fhhc)
-IN_IL_fhhc = rbind(IN_IL_fhhc, IN_fhhc)
+### Create an empty data and then fill it with NAs.  Keep the first 44 those are correct and match
+SOCAT$RespondentType = NULL
+SOCAT_matrix = matrix(NA, ncol = 185-43, nrow = dim(SOCAT)[1])
+SOCAT_matrix = data.frame(SOCAT_matrix)
+colnames(SOCAT_matrix) = colnames(ICP[,44:185])
+SOCAT_full = data.frame(SOCAT[,1:43], SOCAT_matrix)
+dim(SOCAT_full)
+### Change variables that match
+SOCAT_full$Nervous = SOCAT$Nervous
+SOCAT_full$Hopeless = SOCAT$Hopeless
+SOCAT_full$Restless = SOCAT$Restless
+SOCAT_full$Depressed = SOCAT$Depressed
+SOCAT_full$EverythingEffort = SOCAT$EverythingEffort
+SOCAT_full$Worthless = SOCAT$Worthless
+SOCAT_full$Tobacco_Use = SOCAT$Tobacco_Use
+SOCAT_full$Alcohol_Use = SOCAT$Alcohol_Use
+SOCAT_full$StreetOpioids_Use = SOCAT$StreetOpioids_Use
+SOCAT_full$RxOpioids_Use = SOCAT$RxOpioids_Use
+SOCAT_full$NightsHomeless = SOCAT$NightsHomeless
+SOCAT_full$NightsHospitalMHC = SOCAT$NightsHospitalMHC
+SOCAT_full$NightsDetox = SOCAT$NightsDetox
+SOCAT_full$NightsJail = SOCAT$NightsJail
+SOCAT_full$TimesER = SOCAT$TimesER
+SOCAT_full$Housing = SOCAT$Housing
+SOCAT = SOCAT_full
+
+
+IN_IL_CCBHC = rbind(IN, IL)
+dim(IN_IL_CCBHC)
+IN_IL_CCBHC = IN_IL_CCBHC[,1:185]
+dim(IN_IL_CCBHC)
+FHHC = FHHC[,1:185]
+dim(FFHC)
+ICP = ICP[,1:185]
+dim(ICP)
+
+### Add grant ID
+IN_IL_CCBHC$grant = rep(IN_IL_CCBHC, dim(IN_IL_CCBHC)[1])
+
+telehealth_noms = rbind(IN_IL_CCBHC, FHHC, ICP, SOCAT)
 ### Figure out how you can stack FHHC data
+dim(telehealth_noms)
 
-
-
-telehealth_noms = IN_IL_fhhc
 describe.factor(telehealth_noms$Assessment)
 ## Rename to the above
 
@@ -97,13 +124,16 @@ telehealth_noms$telehealth = ifelse(telehealth_noms$date >= "2020-04-01", 1, 0)
 telehealth_noms[c("date","telehealth")]
 ### Cannot be greater than 2020-09-30 last day of grant
 telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
-## Check that all dates post 2000
+## Check that all dates post 2014 most grants are for at most five years
+telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
 telehealth_noms[c("date","telehealth")]
 dim(telehealth_noms)
 
 
 ### Create a NOMS data set  
+n_pre_sub = dim(telehealth_noms)[1]
 telehealth_noms = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2 | Assessment_new == 4)
+dim(telehealth_noms)[1]
 describe.factor(IN_IL_noms$Assessment_new)
 #### Create a vitals data set
 IN_IL_vital = subset(telehealth_noms, Assessment_new == 1 | Assessment_new == 3)
@@ -198,6 +228,7 @@ hist(telehealth_noms_wide_noms_sat$total_month6)
 range(telehealth_noms_wide_noms_sat$total_month6, na.rm = TRUE)
 dim(telehealth_noms_wide_noms_sat)
 head(telehealth_noms_wide_noms_sat)
+telehealth_noms_wide_noms_sat
 telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y")])
 dim(telehealth_noms_wide_noms_sat_month6_complete)
 telehealth_noms_wide_noms_sat_month6_complete
@@ -265,7 +296,7 @@ Or just save code on telehealth folder on T drive
 
 Next section
 Dealing with everyday life with mental health illness
-
+Sat
 a.	I deal effectively with daily problems.
 b.	I am able to control my life. T\CRI_Research\telehealth_evaluation
 c.	I am able to deal with crisis.
