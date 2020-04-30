@@ -148,9 +148,7 @@ range(telehealth_noms$date)
 telehealth_noms_wide = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2)
 dim(telehealth_noms)[1]
 describe.factor(telehealth_noms$Assessment_new)
-#### Create a vitals data set
-IN_IL_vital = subset(telehealth_noms, Assessment_new == 1 | Assessment_new == 3)
-describe.factor(telehealth_noms$grant)
+
 
 ####################
 library(naniar)
@@ -259,12 +257,11 @@ P-change is bad for regression because of:
 ```{r}
 library(rstanarm)
 library(descr)
-### Scale is 1/3 of the adjusted prior
-my_prior = normal(location = 0, scale = .72/3, autoscale = FALSE)
-
+### Scale is .2 which means 20% difference in each direction
+my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
 describe.factor(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
 n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
-## Take log of outcome to get percentage change interpretation
+
 bayes_p_change_sat = stan_glm(log(total_month6)~ telehealth.y, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
@@ -342,15 +339,100 @@ f.	worthless?
 In the past 30 days, how often have you used …
 
 a.	tobacco products (cigarettes, chewing tobacco, cigars, etc.)?
+Tobacco_Use
+
 b.	alcoholic beverages (beer, wine, liquor, etc.)?
-In the past 30 days, how often have you used …
+Alcohol_Use
+
 k.	prescription opioids (fentanyl, oxycodone [OxyContin, Percocet], hydrocodone [Vicodin], methadone, buprenorphine, etc.)?
+RxOpioids_Use
+
 j.	street opioids (heroin, opium, etc.)?
+StreetOpioids_Use
+
 ```{r}
+
+### All items should be 1 to 5
+### Not enough for drugs
+telehealth_alc_tob = telehealth_noms_wide_noms[c("telehealth.y", "Tobacco_Use.x", "Tobacco_Use.y", "Alcohol_Use.x", "Alcohol_Use.y")]
+apply(telehealth_alc_tob,2, function(x){describe.factor(x)})
+library(psych)
+### Only two items not needed.
+### Plug in all the .x variables 
+#omega_sat_base =  omega(telehealth_noms_wide_noms_sat[c(2,4,6,8)], poly = TRUE)
+### Plug in all the .y variables except telehealth.y 
+#omega_sat_6month =  omega(telehealth_noms_wide_noms_sat[c(3,5,7,9)], poly = TRUE)
+#omega_sat_6month
+
+### Plug in all the .x variables 
+#vss(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly")
+#fa(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly", correct = 0)
+
+### Plug in all the .y variables except telehealth.y 
+#vss(telehealth_noms_wide_noms_sat[c(3,5,7,9)], cor = "poly")
+#fa(telehealth_noms_wide_noms_sat[c(3,5,7,9)], cor = "poly", correct = 0)
+
+########### 
+# Create total scores and use sum so you can get counts 
+### Plug in all .x variables
+telehealth_alc_tob$total_base = apply(telehealth_alc_tob[c(2,4)], 1, mean, na.rm = TRUE)
+### Plug in all .y expect for telehealth.y
+telehealth_alc_tob$total_month6 = apply(telehealth_alc_tob[c(3,5)], 1, mean, na.rm = TRUE)
+hist(telehealth_alc_tob$total_base)
+
+### Make binary anything greater than 1 means you used alcohol or tobacco 
+describe.factor(telehealth_alc_tob$total_bas)
+telehealth_alc_tob$total_month6 = ifelse(telehealth_alc_tob$total_month6 == 1, 1,0)
+
+## No data for difference scores so try just 6months
+range(telehealth_alc_tob$total_month6, na.rm = TRUE)
+dim(telehealth_alc_tob)
+head(telehealth_alc_tob)
+telehealth_alc_tob
+telehealth_alc_tob_complete = na.omit(telehealth_alc_tob[c("total_month6", "telehealth.y")])
+dim(telehealth_alc_tob_complete)
+telehealth_alc_tob_complete
+describe.factor(telehealth_alc_tob_complete$telehealth.y)
+############ Run posisson regression
+library(rstanarm)
+library(descr)
+### Scale is exp(.2) which means 20% difference in each direction
+
+
+my_prior = normal(location = 0, scale = exp(.2), autoscale = FALSE)
+my_prior = student_t(4,0,.2)
+describe.factor(telehealth_alc_tob_complete$telehealth.y)
+n_total = dim(telehealth_alc_tob_complete)[1]
+## Take log of outcome to get percentage change interpretation
+
+telehealth_alc_tob_complete$telehealth.y = ifelse(telehealth_alc_tob_complete == 1, 0,1)
+bayes_p_change_al_tob = stan_glm(total_month6~ telehealth.y, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
+bayes_p_change_al_tob
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat$stan_summary if you are unsure
+bayes_p_change_al_tob_sum = round(bayes_p_change_al_tob$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_al_tob_sum = round(exp(bayes_p_change_al_tob_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_al_tob_sum= bayes_p_change_al_tob_sum - 1
+bayes_p_change_al_tob_sum
+
+
+
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat to whatever you are measuring results_(fill in name)
+
+results_alc_tob = data.frame(odds_change_alc_tob = bayes_p_change_al_tob_sum[2,1], sd_odds_change =  bayes_p_change_al_tob_sum[2,2], ci_95 = paste0(bayes_p_change_al_tob_sum[2,3], ",", bayes_p_change_al_tob_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2])
+
+write.csv(results_alc_tob, "results_alc_tob.csv", row.names = FALSE)
+results_alc_tob
+prior_summary(bayes_p_change_al_tob)
+exp(.2)
+
 
 ```
 
-
+Not doing this no 6-month data
 
 ##################################
 VIOLENCE AND TRAUMA 
@@ -359,7 +441,13 @@ a.	Have had nightmares about it or thought about it when you did not want to?
 b.	Tried hard not to think about it or went out of your way to avoid situations that remind you of it?
 c.	Were constantly on guard, watchful, or easily startled?
 d.	Felt numb and detached from others, activities, or your surroundings?
+VT_OnGuard
+
 ```{r}
+
+telehealth_noms_wide_vt = telehealth_noms_wide_noms[c("telehealth.y","VT_NightmaresThoughts.x", "VT_NightmaresThoughts.y", "VT_NotThinkAboutIt.x", "VT_NotThinkAboutIt.y", "VT_OnGuard.x", "VT_OnGuard.y", "VT_NumbDetached.x", "VT_NumbDetached.y")]
+
+apply(telehealth_noms_wide_vt, 2, function(x){describe.factor(x)})
 
 ```
 
@@ -368,24 +456,98 @@ d.	Felt numb and detached from others, activities, or your surroundings?
 PERCEPTION OF CARE
 1.	In order to provide the best possible mental health and related services, we need to know what you think about the services you received during the past 30 days, the people who provided it, and the results. Please indicate your disagreement/agreement with each of the following statements.
 a.	Staff here believe that I can grow, change, and recover.
-b.	I felt free to complain.
-c.	I was given information about my rights.
-d.	Staff encouraged me to take responsibility for how I live my life.
-e.	Staff told me what side effects to watch out for.
-f.	Staff respected my wishes about who is and who is not to be given information about my treatment.
-g.	Staff were sensitive to my cultural background (race, religion, language, etc.).
-h.	Staff helped me obtain the information I needed so that I could take charge of managing my illness.
-i.	I was encouraged to use consumer-run programs (support groups, drop-in centers, crisis phone line, etc.).
-j.	I felt comfortable asking questions about my treatment and medication.
-a.	I, not staff, decided my treatment goals.
-b.	I like the services I received here.
-c.	If I had other choices, I would still get services from this agency.
-d.	I would recommend this agency to a friend or family member.
-```{r}
+Recover
 
+b.	I felt free to complain.
+Complain
+
+c.	I was given information about my rights.
+Rights
+
+d.	Staff encouraged me to take responsibility for how I live my life.
+Responsibility
+
+e.	Staff told me what side effects to watch out for.
+SideEffects
+
+f.	Staff respected my wishes about who is and who is not to be given information about my treatment.
+SharingTreatmentInformation
+
+g.	Staff were sensitive to my cultural background (race, religion, language, etc.).
+SensitiveToCulture
+
+h.	Staff helped me obtain the information I needed so that I could take charge of managing my illness.
+InformationNeeded
+
+i.	I was encouraged to use consumer-run programs (support groups, drop-in centers, crisis phone line, etc.).
+ConsumerRunPrograms
+
+j.	I felt comfortable asking questions about my treatment and medication.
+ComfortableAskingQuestions
+
+a.	I, not staff, decided my treatment goals.
+TreatmentGoals
+
+b.	I like the services I received here.
+LikeServices
+
+c.	If I had other choices, I would still get services from this agency.
+Choices
+
+d.	I would recommend this agency to a friend or family member.
+RecommendAgency
+
+```{r}
+telehealth_noms_wide_pc = telehealth_noms_wide_noms[c("telehealth.y", "Recover.x", "Recover.y", "Rights.x", "Rights.y", "Responsibility.x", "Responsibility.y", "SideEffects.x", "SideEffects.y", "SharingTreatmentInformation.x", "SharingTreatmentInformation.y", "SensitiveToCulture.x", "SensitiveToCulture.y", "InformationNeeded.x", "InformationNeeded.y", "ConsumerRunPrograms.x", "ConsumerRunPrograms.y", "ComfortableAskingQuestions.x", "ComfortableAskingQuestions.y", "TreatmentGoals.x", "TreatmentGoals.y", "LikeServices.x", "LikeServices.y", "Choices.x", "Choices.y", "RecommendAgency.x", "RecommendAgency.y")]
+
+apply(telehealth_noms_wide_pc, 2, function(x){describe.factor(x)})
+
+telehealth_noms_wide_pc$total_month6 = apply(telehealth_noms_wide_pc[,c(3,5,7,9,11,13,15,17,19,21,23,25,27)], 1, mean, na.rm = TRUE)
+
+
+### Psychometrics
+### Plug in all the .x variables 
+omega_pc_6month =  omega(telehealth_noms_wide_pc[,c(3,5,7,9,11,13,15,17,19,21,23,25,27)], poly = TRUE)
+omega_pc_6month
+
+### Plug in all the .y variables except telehealth.y 
+vss(telehealth_noms_wide_pc[,c(3,5,7,9,11,13,15,17,19,21,23,25,27)], cor = "poly")
+fa(telehealth_noms_wide_pc[,c(3,5,7,9,11,13,15,17,19,21,23,25,27)], cor = "poly", correct = 0)
+
+telehealth_noms_wide_pc_complete = na.omit(telehealth_noms_wide_pc[c("telehealth.y", "total_month6")])
+n_total =  dim(telehealth_noms_wide_pc_complete)[1]
+### Just do a wilcox test for now.
+mean_sd_pc = compmeans(telehealth_noms_wide_pc_complete$total_month6, telehealth_noms_wide_pc_complete$telehealth.y)
+mean_sd_pc
+### You need to flip telehealth y so you can compare telehealth to face to face to be consisent with other results
+telehealth_noms_wide_pc_complete$telehealth.y = ifelse(telehealth_noms_wide_pc_complete$telehealth.y == 1, 0,1)
+
+results_pc = wilcox.test(telehealth_noms_wide_pc_complete$total_month6 ~telehealth_noms_wide_pc_complete$telehealth.y, conf.int = TRUE)
+round(results_pc$estimate,3)
+
+results_pc = data.frame(diff_location = round(results_pc$estimate,3), ci_95 = paste0(round(results_pc$conf.int[1],3), ",", round(results_pc$conf.int[2],3)), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2])
+
+results_pc
+write.csv(results_pc, "results_pc.csv", row.names = FALSE)
 ```
 
 Vitals
+Subset for just 3 months 
+BloodPressureSystolicResponse
+BloodPressureDiastolicResponse
+WeightResponse
+HeightResponse
+WaistCircumferenceResponse
+
+```{r}
+IN_IL_CCBHC_vitals = rbind(IN, IL)
+
+IN_IL_CCBHC_vitals = subset(IN_IL_CCBHC_vitals, Assessment == "301")
+
+IN_IL_CCBHC_vitals = IN_IL_CCBHC_vitals[c("BloodPressureSystolicResponse
+", "BloodPressureDiastolicResponse", "WeightResponse", "HeightResponse", "WaistCircumferenceResponse")]
+
+```
 
 
 
