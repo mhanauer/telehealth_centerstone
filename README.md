@@ -15,8 +15,12 @@ Stack variables
 
 Post stacking transformations
 
+All other grants
+0600 = Baseline
+0601 = 6 month resasessment
 
 
+CCBHC
 For assessment see below 3-months is actually vitals and so on
 3-month vitals
 6 month reassessment
@@ -34,7 +38,7 @@ Assessment:
 Assessment_new
 0 = Baseline
 1 = 3 month reassessment (vitals)
-2 = 6 month reassessment
+2 = 6 month reassessment (302 from CCBHC and 601 from all other grants)
 3 = 9 month reassessment (vitals)
 4 = 12 month reassessment
 5 = clinical discharge
@@ -51,6 +55,8 @@ telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with 
 
 ### Run this prior to any analysis to load data ####
 ```{r}
+
+###
 library(lubridate)
 library(prettyR)
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
@@ -85,7 +91,7 @@ SOCAT_full$NightsJail = SOCAT$NightsJail
 SOCAT_full$TimesER = SOCAT$TimesER
 SOCAT_full$Housing = SOCAT$Housing
 SOCAT = SOCAT_full
-
+describe.factor(FHHC$Assessment)
 
 IN_IL_CCBHC = rbind(IN, IL)
 dim(IN_IL_CCBHC)
@@ -103,8 +109,13 @@ SOCAT$grant = rep("SOCAT", dim(SOCAT)[1])
 dim(SOCAT)
 dim(IN_IL_CCBHC)
 telehealth_noms = rbind(IN_IL_CCBHC, FHHC, ICP, SOCAT)
+
+### Create a new ConsumerID that is a mix of grant and ConsumerID
+telehealth_noms$ConsumerID_grant = paste0(telehealth_noms$ConsumerID, telehealth_noms$GrantID)
+
 ### Figure out how you can stack FHHC data
 dim(telehealth_noms)
+describe.factor(telehealth_noms$grant) 
 
 describe.factor(telehealth_noms$Assessment)
 ## Rename to the above
@@ -114,14 +125,10 @@ describe.factor(telehealth_noms$ReassessmentNumber_07)
 ## Reorder data
 describe.factor(telehealth_noms$Assessment)
 
-telehealth_noms_test = telehealth_noms[c("Assessment", "grant")]
-telehealth_noms_test
 ## Create recoded assessment variable
-telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 304, 4, ifelse(telehealth_noms$Assessment == 699,5, "Wrong"))))))
+telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 601,2, NA)))))
+telehealth_noms$Assessment_new = as.numeric(telehealth_noms$Assessment_new)
 describe.factor(telehealth_noms$Assessment_new, decr.order= FALSE)
-
-telehealth_noms_test = telehealth_noms[c("Assessment_new", "grant")]
-telehealth_noms_test
 ### Create full date variable
 telehealth_noms$date = paste0(telehealth_noms$FFY, "-", telehealth_noms$Month, "-", "01")
 telehealth_noms$date = ymd(telehealth_noms$date)
@@ -136,10 +143,11 @@ telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
 telehealth_noms[c("date","telehealth")]
 dim(telehealth_noms)
 describe.factor(telehealth_noms$grant)
-
+range(telehealth_noms$date)
 ### Create a NOMS data set  
-telehealth_noms = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2 | Assessment_new == 4)
+telehealth_noms_wide = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2)
 dim(telehealth_noms)[1]
+describe.factor(telehealth_noms$Assessment_new)
 #### Create a vitals data set
 IN_IL_vital = subset(telehealth_noms, Assessment_new == 1 | Assessment_new == 3)
 describe.factor(telehealth_noms$grant)
@@ -148,31 +156,29 @@ describe.factor(telehealth_noms$grant)
 library(naniar)
 miss_var_summary(telehealth_noms)
 
-### Just grab a few and see what the descriptives are like
-#Alcohol_Use
-#PsychologicalEmotionalProblems, EnoughEnergyForEverydayLife, Depressed
-#telehealth_noms_sub_count = IN_IL_noms[c("ConsumerID", "Assessment_new", "NightsHospitalMHC", "NightsDetox", "telehealth", "date")]
 head(telehealth_noms)
 miss_var_summary(subset(telehealth_noms, Assessment_new == 2))
 miss_var_summary(subset(telehealth_noms, Assessment_new == 0))
 
-telehealth_noms_wide = subset(telehealth_noms, Assessment_new <=2)
-describe.factor(telehealth_noms_wide$Assessment_new)
-describe.factor(telehealth_noms_wide$telehealth)
-describe.factor(telehealth_noms_wide$grant)
 ### These people have two baselines delete them 'A00276''A00295''A00298'
 telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
-telehealth_noms_wide[c(276,293, 298), c(1,7)]
+telehealth_noms_wide = telehealth_noms_wide[order(telehealth_noms_wide$ConsumerID),]
+telehealth_noms_wide[c(276,293, 298),]
 telehealth_noms_wide = telehealth_noms_wide[-c(276,293, 298),] 
 
 telehealth_noms_base_noms = subset(telehealth_noms_wide,Assessment_new == 0)
 telehealth_noms_month6_noms = subset(telehealth_noms_wide,Assessment_new == 2)
+describe.factor(telehealth_noms_base_noms$grant)
 describe.factor(telehealth_noms_month6_noms$grant)
+
 head(telehealth_noms_base_noms)
 dim(telehealth_noms_month6_noms)
-telehealth_noms_wide_noms = merge(telehealth_noms_base_noms, telehealth_noms_month6_noms, by = "ConsumerID", all.y = TRUE)
+telehealth_noms_wide_noms = merge(telehealth_noms_base_noms, telehealth_noms_month6_noms, by = "ConsumerID_grant", all.y = TRUE)
 dim(telehealth_noms_wide_noms)
-describe.factor(telehealth_noms_wide_noms$grant.y)
+
+head(telehealth_noms_month6_noms)
+describe.factor(telehealth_noms_month6_noms$telehealth)
+describe.factor(telehealth_noms_month6_noms$grant)
 ```
 Data set descriptives
 telehealth_noms_wide_noms = CCBHC IN and IL both adults and youth, FFHC NOMS data for baseline and 6-month matched pairs 
@@ -196,9 +202,7 @@ how satisfied are you with your personal relationships? RelationshipSatisfaction
 2. Check the descriptives to make sure everything is in range
 3. Conduct psychometrics 
 
-telehealth.y: 1 = client had a 6-month reassessment during telehealth, 0 = client had a 6-month reassessment pre-telehealth
-.x = data from baseline
-.y = data from 6-month reassessment
+
 
 ```{r}
 ### All items should be 1 to 5
@@ -272,11 +276,10 @@ bayes_p_change_sat_sum= bayes_p_change_sat_sum - 1
 bayes_p_change_sat_sum
 
 ### Grabing the means, sds, and n's for each group
-mean_sd_sat= round(compmeans(telehealth_noms_wide_noms_sat_month6_complete$total_month6, telehealth_noms_wide_noms_sat_month6_complete$telehealth.y))
+mean_sd_sat= round(compmeans(telehealth_noms_wide_noms_sat_month6_complete$total_month6, telehealth_noms_wide_noms_sat_month6_complete$telehealth.y),2)
 mean_sd_sat
 ### Get freq cohen's D, because I don't know how to get bayes cohen's D
 month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_month6, group = telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
-
 ### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
 ## Change results from results_sat to whatever you are measuring results_(fill in name)
 results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
@@ -284,7 +287,6 @@ results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change
 write.csv(results_sat, "results.csv", row.names = FALSE)
 results_sat
 prior_summary(bayes_p_change_sat)
-
 
 ```
 #################
