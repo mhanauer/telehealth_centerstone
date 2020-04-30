@@ -57,14 +57,16 @@ telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with 
 ```{r}
 
 ###
-library(lubridate)
-library(prettyR)
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
 IL =  read.csv("CCBHC_IL_4_14_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 IN =  read.csv("CCBHC_IN_4_15_20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 FHHC = read.csv("fhhc_noms_4_22_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 ICP = read.csv("ICP_NOMS_Data Download 4.24.2020.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 SOCAT = read.csv("SOCAT NOMs download 4.27.20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+KY_adult = read.csv("4_27_20 Adult_CCBHC_KY.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+KY_youth = read.csv("4_27_20 Child_CCBHC_KY.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+FL_ACT = read.csv("FL_ACT_4_30_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+
 ## Now stack them
 ### Create an empty data and then fill it with NAs.  Keep the first 44 those are correct and match
 SOCAT$RespondentType = NULL
@@ -93,23 +95,49 @@ SOCAT_full$Housing = SOCAT$Housing
 SOCAT = SOCAT_full
 describe.factor(FHHC$Assessment)
 
-IN_IL_CCBHC = rbind(IN, IL)
-dim(IN_IL_CCBHC)
-IN_IL_CCBHC = IN_IL_CCBHC[,1:185]
-dim(IN_IL_CCBHC)
+KY_youth$RespondentType = NULL
+KY_youth_matrix = matrix(NA, ncol = 185-43, nrow = dim(KY_youth)[1])
+KY_youth_matrix = data.frame(KY_youth_matrix)
+colnames(KY_youth_matrix) = colnames(ICP[,44:185])
+KY_youth_full = data.frame(KY_youth[,1:43], KY_youth_matrix)
+dim(KY_youth_full)
+### Change variables that match
+KY_youth_full$Nervous = KY_youth$Nervous
+KY_youth_full$Hopeless = KY_youth$Hopeless
+KY_youth_full$Restless = KY_youth$Restless
+KY_youth_full$Depressed = KY_youth$Depressed
+KY_youth_full$EverythingEffort = KY_youth$EverythingEffort
+KY_youth_full$Worthless = KY_youth$Worthless
+KY_youth_full$Tobacco_Use = KY_youth$Tobacco_Use
+KY_youth_full$Alcohol_Use = KY_youth$Alcohol_Use
+KY_youth_full$StreetOpioids_Use = KY_youth$StreetOpioids_Use
+KY_youth_full$RxOpioids_Use = KY_youth$RxOpioids_Use
+KY_youth_full$NightsHomeless = KY_youth$NightsHomeless
+KY_youth_full$NightsHospitalMHC = KY_youth$NightsHospitalMHC
+KY_youth_full$NightsDetox = KY_youth$NightsDetox
+KY_youth_full$NightsJail = KY_youth$NightsJail
+KY_youth_full$TimesER = KY_youth$TimesER
+KY_youth_full$Housing = KY_youth$Housing
+KY_youth = KY_youth_full
+
+
+IN_IL_KY_CCBHC = rbind(IN[,1:185], IL[,1:185], KY_youth[,1:185], KY_adult[,1:185])
+dim(IN_IL_KY_CCBHC)
 FHHC = FHHC[,1:185]
 ICP = ICP[,1:185]
+FL_ACT = FL_ACT[,1:185]
 dim(ICP)
 dim(SOCAT)
 ### Add grant ID
-IN_IL_CCBHC$grant = rep("IN_IL_CCBHC", dim(IN_IL_CCBHC)[1])
+IN_IL_KY_CCBHC$grant = rep("IN_IL_KY_CCBHC", dim(IN_IL_KY_CCBHC)[1])
 FHHC$grant = rep("FHHC", dim(FHHC)[1])
 ICP$grant = rep("ICP", dim(ICP)[1])
 SOCAT$grant = rep("SOCAT", dim(SOCAT)[1])
+FL_ACT$grant = rep("FL_ACT", dim(FL_ACT)[1])
 dim(SOCAT)
 dim(IN_IL_CCBHC)
-telehealth_noms = rbind(IN_IL_CCBHC, FHHC, ICP, SOCAT)
-
+telehealth_noms = rbind(IN_IL_KY_CCBHC, FHHC, ICP, SOCAT, FL_ACT)
+dim(telehealth_noms)
 ### Create a new ConsumerID that is a mix of grant and ConsumerID
 telehealth_noms$ConsumerID_grant = paste0(telehealth_noms$ConsumerID, telehealth_noms$GrantID)
 
@@ -283,7 +311,6 @@ results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change
 
 write.csv(results_sat, "results.csv", row.names = FALSE)
 results_sat
-prior_summary(bayes_p_change_sat)
 
 ```
 #################
@@ -539,15 +566,63 @@ WeightResponse
 HeightResponse
 WaistCircumferenceResponse
 
+BMI = https://www.diabetes.ca/managing-my-diabetes/tools---resources/body-mass-index-(bmi)-calculator
+kg/m2
+
+Not enough data yet
 ```{r}
-IN_IL_CCBHC_vitals = rbind(IN, IL)
+IN_IL_KY_CCBHC_vitals = rbind(IN, IL, KY_adult)
 
-IN_IL_CCBHC_vitals = subset(IN_IL_CCBHC_vitals, Assessment == "301")
+IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, Assessment == "301")
 
-IN_IL_CCBHC_vitals = IN_IL_CCBHC_vitals[c("BloodPressureSystolicResponse
-", "BloodPressureDiastolicResponse", "WeightResponse", "HeightResponse", "WaistCircumferenceResponse")]
+IN_IL_KY_CCBHC_vitals = IN_IL_KY_CCBHC_vitals[c("FFY", "Month", "BloodPressureSystolicResponse",
+"BloodPressureDiastolicResponse", "WeightResponse", "HeightResponse", "WaistCircumferenceResponse")]
 
+IN_IL_KY_CCBHC_vitals$date = paste0(IN_IL_KY_CCBHC_vitals$FFY, "-", IN_IL_KY_CCBHC_vitals$Month, "-", "01")
+IN_IL_KY_CCBHC_vitals$date = ymd(IN_IL_KY_CCBHC_vitals$date)
+head(IN_IL_KY_CCBHC_vitals$date)
+
+IN_IL_KY_CCBHC_vitals$telehealth = ifelse(IN_IL_KY_CCBHC_vitals$date >= "2020-04-01", 1, 0)
+IN_IL_KY_CCBHC_vitals[c("date","telehealth")]
+### Cannot be greater than 2020-09-30 last day of grant
+IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, date < "2020-09-30")
+## Check that all dates post 2014 most grants are for at most five years
+IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, date > "2014-01-01")
+dim(IN_IL_KY_CCBHC_vitals)
+IN_IL_KY_CCBHC_vitals$meters_2 = (IN_IL_KY_CCBHC_vitals$HeightResponse / 100)^2
+IN_IL_KY_CCBHC_vitals$bmi = IN_IL_KY_CCBHC_vitals$WeightResponse / IN_IL_KY_CCBHC_vitals$meters_2
+hist(IN_IL_KY_CCBHC_vitals$bmi)
+#### Get rid of anyone with a BMI of greater than 150
+IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, bmi < 150)
+hist(IN_IL_KY_CCBHC_vitals$bmi)
+
+describe.factor(IN_IL_KY_CCBHC_vitals$telehealth)
+#########################################################
+#### Bayes analysis
+my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
+describe.factor(IN_IL_KY_CCBHC_vitals$telehealth)
+n_total = dim(IN_IL_KY_CCBHC_vitals)[1]
+
+bayes_p_change_bmi = stan_glm(log(bmi)~ telehealth, prior = my_prior, data = IN_IL_KY_CCBHC_vitals, seed = 123)
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_bmi$stan_summary if you are unsure
+bayes_p_change_bmi_sum = round(bayes_p_change_bmi$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_bmi_sum = round(exp(bayes_p_change_bmi_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_bmi_sum= bayes_p_change_bmi_sum - 1
+bayes_p_change_bmi_sum
+
+### Grabing the means, sds, and n's for each group
+mean_sd_bmi= round(compmeans(IN_IL_KY_CCBHC_vitals$bmi, IN_IL_KY_CCBHC_vitals$telehealth),2)
+mean_sd_bmi
+(30.87-31.56)/31.56
+### Get freq cohen's D, because I don't know how to get bayes cohen's D
+month_6_bmi_d =  cohen.d(IN_IL_KY_CCBHC_vitals$bmi, group = IN_IL_KY_CCBHC_vitals$telehealth)
+### Put together the results.  Should not need to change this.  See example telehealth_noms_bmi_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_bmi to whatever you are measuring results_(fill in name)
+results_bmi = data.frame(p_change_bmi = bayes_p_change_bmi_sum[2,1], sd_p_change =  bayes_p_change_bmi_sum[2,2], ci_95 = paste0(bayes_p_change_bmi_sum[2,3], ",", bayes_p_change_bmi_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_bmi[1,2], n_post_telehealth = mean_sd_bmi[2,2], freq_cohen_d = round(month_6_bmi_d$cohen.d[2],3))
+
+write.csv(results_bmi, "results.csv", row.names = FALSE)
+results_bmi
 ```
-
-
-
