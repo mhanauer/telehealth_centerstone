@@ -1,0 +1,237 @@
+```{r pressure, echo=FALSE}
+library("prettyR")
+library("lubridate")
+library(naniar)
+library(rstanarm)
+library(descr)
+library(psych)
+library(GPArotation)
+
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+###
+setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
+IL =  read.csv("CCBHC_IL_4_14_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+IN =  read.csv("CCBHC_IN_4_15_20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+FHHC = read.csv("fhhc_noms_4_22_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+ICP = read.csv("ICP_NOMS_Data Download 4.24.2020.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+SOCAT = read.csv("SOCAT NOMs download 4.27.20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+KY_adult = read.csv("4_27_20 Adult_CCBHC_KY.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+KY_youth = read.csv("4_27_20 Child_CCBHC_KY.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+FL_ACT = read.csv("FL_ACT_4_30_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+
+## Now stack them
+### Create an empty data and then fill it with NAs.  Keep the first 44 those are correct and match
+SOCAT$RespondentType = NULL
+SOCAT_matrix = matrix(NA, ncol = 185-43, nrow = dim(SOCAT)[1])
+SOCAT_matrix = data.frame(SOCAT_matrix)
+colnames(SOCAT_matrix) = colnames(ICP[,44:185])
+SOCAT_full = data.frame(SOCAT[,1:43], SOCAT_matrix)
+dim(SOCAT_full)
+### Change variables that match
+SOCAT_full$Nervous = SOCAT$Nervous
+SOCAT_full$Hopeless = SOCAT$Hopeless
+SOCAT_full$Restless = SOCAT$Restless
+SOCAT_full$Depressed = SOCAT$Depressed
+SOCAT_full$EverythingEffort = SOCAT$EverythingEffort
+SOCAT_full$Worthless = SOCAT$Worthless
+SOCAT_full$Tobacco_Use = SOCAT$Tobacco_Use
+SOCAT_full$Alcohol_Use = SOCAT$Alcohol_Use
+SOCAT_full$StreetOpioids_Use = SOCAT$StreetOpioids_Use
+SOCAT_full$RxOpioids_Use = SOCAT$RxOpioids_Use
+SOCAT_full$NightsHomeless = SOCAT$NightsHomeless
+SOCAT_full$NightsHospitalMHC = SOCAT$NightsHospitalMHC
+SOCAT_full$NightsDetox = SOCAT$NightsDetox
+SOCAT_full$NightsJail = SOCAT$NightsJail
+SOCAT_full$TimesER = SOCAT$TimesER
+SOCAT_full$Housing = SOCAT$Housing
+SOCAT = SOCAT_full
+describe.factor(FHHC$Assessment)
+
+KY_youth$RespondentType = NULL
+KY_youth_matrix = matrix(NA, ncol = 185-43, nrow = dim(KY_youth)[1])
+KY_youth_matrix = data.frame(KY_youth_matrix)
+colnames(KY_youth_matrix) = colnames(ICP[,44:185])
+KY_youth_full = data.frame(KY_youth[,1:43], KY_youth_matrix)
+dim(KY_youth_full)
+### Change variables that match
+KY_youth_full$Nervous = KY_youth$Nervous
+KY_youth_full$Hopeless = KY_youth$Hopeless
+KY_youth_full$Restless = KY_youth$Restless
+KY_youth_full$Depressed = KY_youth$Depressed
+KY_youth_full$EverythingEffort = KY_youth$EverythingEffort
+KY_youth_full$Worthless = KY_youth$Worthless
+KY_youth_full$Tobacco_Use = KY_youth$Tobacco_Use
+KY_youth_full$Alcohol_Use = KY_youth$Alcohol_Use
+KY_youth_full$StreetOpioids_Use = KY_youth$StreetOpioids_Use
+KY_youth_full$RxOpioids_Use = KY_youth$RxOpioids_Use
+KY_youth_full$NightsHomeless = KY_youth$NightsHomeless
+KY_youth_full$NightsHospitalMHC = KY_youth$NightsHospitalMHC
+KY_youth_full$NightsDetox = KY_youth$NightsDetox
+KY_youth_full$NightsJail = KY_youth$NightsJail
+KY_youth_full$TimesER = KY_youth$TimesER
+KY_youth_full$Housing = KY_youth$Housing
+KY_youth = KY_youth_full
+
+
+IN_IL_KY_CCBHC = rbind(IN[,1:185], IL[,1:185], KY_youth[,1:185], KY_adult[,1:185])
+dim(IN_IL_KY_CCBHC)
+FHHC = FHHC[,1:185]
+ICP = ICP[,1:185]
+FL_ACT = FL_ACT[,1:185]
+dim(ICP)
+dim(SOCAT)
+### Add grant ID
+IN_IL_KY_CCBHC$grant = rep("IN_IL_KY_CCBHC", dim(IN_IL_KY_CCBHC)[1])
+FHHC$grant = rep("FHHC", dim(FHHC)[1])
+ICP$grant = rep("ICP", dim(ICP)[1])
+SOCAT$grant = rep("SOCAT", dim(SOCAT)[1])
+FL_ACT$grant = rep("FL_ACT", dim(FL_ACT)[1])
+dim(SOCAT)
+dim(IN_IL_CCBHC)
+telehealth_noms = rbind(IN_IL_KY_CCBHC, FHHC, ICP, SOCAT, FL_ACT)
+dim(telehealth_noms)
+### Create a new ConsumerID that is a mix of grant and ConsumerID
+telehealth_noms$ConsumerID_grant = paste0(telehealth_noms$ConsumerID, telehealth_noms$GrantID)
+
+### Figure out how you can stack FHHC data
+dim(telehealth_noms)
+describe.factor(telehealth_noms$grant) 
+
+describe.factor(telehealth_noms$Assessment)
+## Rename to the above
+
+## No one has multiple reassessments
+describe.factor(telehealth_noms$ReassessmentNumber_07)
+## Reorder data
+describe.factor(telehealth_noms$Assessment)
+
+## Create recoded assessment variable
+telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 601,2, NA)))))
+telehealth_noms$Assessment_new = as.numeric(telehealth_noms$Assessment_new)
+describe.factor(telehealth_noms$Assessment_new, decr.order= FALSE)
+### Create full date variable
+telehealth_noms$date = paste0(telehealth_noms$FFY, "-", telehealth_noms$Month, "-", "01")
+telehealth_noms$date = ymd(telehealth_noms$date)
+head(telehealth_noms$date)
+
+telehealth_noms$telehealth = ifelse(telehealth_noms$date >= "2020-04-01", 1, 0)
+telehealth_noms[c("date","telehealth")]
+### Cannot be greater than 2020-09-30 last day of grant
+telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
+## Check that all dates post 2014 most grants are for at most five years
+telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
+telehealth_noms[c("date","telehealth")]
+dim(telehealth_noms)
+describe.factor(telehealth_noms$grant)
+range(telehealth_noms$date)
+### Create a NOMS data set  
+telehealth_noms_wide = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2)
+dim(telehealth_noms)[1]
+describe.factor(telehealth_noms$Assessment_new)
+
+
+####################
+library(naniar)
+miss_var_summary(telehealth_noms)
+
+head(telehealth_noms)
+miss_var_summary(subset(telehealth_noms, Assessment_new == 2))
+miss_var_summary(subset(telehealth_noms, Assessment_new == 0))
+
+### These people have two baselines delete them 'A00276''A00295''A00298'
+telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
+telehealth_noms_wide = telehealth_noms_wide[order(telehealth_noms_wide$ConsumerID),]
+telehealth_noms_wide[c(276,293, 298),]
+telehealth_noms_wide = telehealth_noms_wide[-c(276,293, 298),] 
+
+telehealth_noms_base_noms = subset(telehealth_noms_wide,Assessment_new == 0)
+telehealth_noms_month6_noms = subset(telehealth_noms_wide,Assessment_new == 2)
+describe.factor(telehealth_noms_base_noms$grant)
+describe.factor(telehealth_noms_month6_noms$grant)
+
+head(telehealth_noms_base_noms)
+dim(telehealth_noms_month6_noms)
+telehealth_noms_wide_noms = merge(telehealth_noms_base_noms, telehealth_noms_month6_noms, by = "ConsumerID_grant", all.y = TRUE)
+dim(telehealth_noms_wide_noms)
+
+head(telehealth_noms_month6_noms)
+describe.factor(telehealth_noms_month6_noms$telehealth)
+describe.factor(telehealth_noms_month6_noms$grant)
+
+
+
+### All items should be 1 to 5
+telehealth_noms_wide_noms_deal = telehealth_noms_wide_noms[c("telehealth.y", "HandlingDailyLife.x", "HandlingDailyLife.y", "ControlLife.x", "ControlLife.y", "DealWithCrisis.x", "DealWithCrisis.y", "GetsAlongWithFamily.x","GetsAlongWithFamily.y", "SocialSituations.x", "SocialSituations.y", "SchoolOrWork.x", "SchoolOrWork.y", "FunctioningHousing.x", "FunctioningHousing.y", "Symptoms.x","Symptoms.y")]
+apply(telehealth_noms_wide_noms_deal,2, function(x){describe.factor(x)})
+library(psych)
+
+### Plug in all the .x variables 
+omega_deal_base =  omega(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], poly = TRUE)
+### Plug in all the .y variables except telehealth.y 
+omega_deal_6month =  omega(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], poly = TRUE)
+omega_deal_6month
+
+### Plug in all the .x variables 
+vss(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], cor = "poly")
+fa(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], cor = "poly", correct = 0)
+
+### Plug in all the .y variables except telehealth.y 
+vss(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly")
+fa(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly", correct = 0)
+
+
+
+### Plug in all .x variables
+telehealth_noms_wide_noms_deal$total_base = apply(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], 1, mean, na.rm = TRUE)
+### Plug in all .y expect for telehealth.y
+telehealth_noms_wide_noms_deal$total_month6 = apply(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], 1, mean, na.rm = TRUE)
+hist(telehealth_noms_wide_noms_deal$total_base)
+hist(telehealth_noms_wide_noms_deal$total_month6)
+
+## No data for difference scores so try just 6months
+range(telehealth_noms_wide_noms_deal$total_month6, na.rm = TRUE)
+dim(telehealth_noms_wide_noms_deal)
+head(telehealth_noms_wide_noms_deal)
+telehealth_noms_wide_noms_deal
+telehealth_noms_wide_noms_deal_month6_complete = na.omit(telehealth_noms_wide_noms_deal[c("total_month6", "telehealth.y")])
+dim(telehealth_noms_wide_noms_deal_month6_complete)
+telehealth_noms_wide_noms_deal_month6_complete
+
+
+
+
+
+library(rstanarm)
+library(descr)
+### Scale is .2 which means 20% difference in each direction
+my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
+describe.factor(telehealth_noms_wide_noms_deal_month6_complete$telehealth.y)
+n_total = dim(telehealth_noms_wide_noms_deal_month6_complete)[1]
+
+bayes_p_change_deal = stan_glm(log(total_month6)~ telehealth.y, prior = my_prior, data = telehealth_noms_wide_noms_deal_month6_complete, seed = 123)
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat$stan_summary if you are unsure
+bayes_p_change_deal_sum = round(bayes_p_change_deal$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_deal_sum = round(exp(bayes_p_change_deal_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_deal_sum= bayes_p_change_deal_sum - 1
+bayes_p_change_deal_sum
+
+### Grabing the means, sds, and n's for each group
+mean_sd_deal= round(compmeans(telehealth_noms_wide_noms_deal_month6_complete$total_month6, telehealth_noms_wide_noms_deal_month6_complete$telehealth.y),2)
+mean_sd_deal
+### Get freq cohen's D, because I don't know how to get bayes cohen's D
+month_6_deal_d =  cohen.d(telehealth_noms_wide_noms_deal_month6_complete$total_month6, group = telehealth_noms_wide_noms_deal_month6_complete$telehealth.y)
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat to whatever you are measuring results_(fill in name)
+results_deal = data.frame(p_change_deal = bayes_p_change_deal_sum[2,1], sd_p_change =  bayes_p_change_deal_sum[2,2], ci_95 = paste0(bayes_p_change_deal_sum[2,3], ",", bayes_p_change_deal_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_deal[1,2], n_post_telehealth = mean_sd_deal[2,2], mean_post_telehealth = mean_sd_deal[2,1], mean_pre_telehealth = mean_sd_deal[1,1], sd_post_telehealth = mean_sd_deal[2,3], sd_pre_telehealth = mean_sd_deal[1,3], freq_cohen_d = round(month_6_deal_d$cohen.d[2],3))
+
+
+write.csv(results_deal, "results.csv", row.names = FALSE)
+results_deal
+
+
+```
