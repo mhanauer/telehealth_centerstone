@@ -7,10 +7,6 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-State: IN = 1, IL  = 0
-adult_youth = 1 = adult, 0 = youth
-youth have "c" in their id
-
 Stack variables
 
 Post stacking transformations
@@ -49,7 +45,6 @@ telehealth.y means they were in telehealth at 6 months which is what we want
 
 # Data mergeing
 For CCBHC IN, IL all the same
-For FHHC first 186 variables are the same
 
 telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with any assessment date on or after 4-2-2020
 
@@ -150,8 +145,6 @@ describe.factor(telehealth_noms$Assessment)
 
 ## No one has multiple reassessments
 describe.factor(telehealth_noms$ReassessmentNumber_07)
-## Reorder data
-describe.factor(telehealth_noms$Assessment)
 
 ## Create recoded assessment variable
 telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 601,2, NA)))))
@@ -189,9 +182,18 @@ miss_var_summary(subset(telehealth_noms, Assessment_new == 0))
 ### These people have two baselines delete them 'A00276''A00295''A00298'
 telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
 telehealth_noms_wide = telehealth_noms_wide[order(telehealth_noms_wide$ConsumerID),]
-telehealth_noms_wide[c(276,293, 298),]
-telehealth_noms_wide = telehealth_noms_wide[-c(276,293, 298),] 
+## If there is no interview then delete the second, if there is only one interview delete the none interview, if there are two interviews for baseline delete the second see conductedinterview variable
+telehealth_noms_wide[c(276, 291, 298),]
+telehealth_noms_wide = telehealth_noms_wide[-c(276, 291, 298),] 
 
+### These repeating
+#Consumergrant ID '169658'SM81849 Consumer ID '169658'  
+# Consumergrant ID'180815'SM81849 Consuerm ID '180815'
+telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID_grant == "'169658'SM81849" | ConsumerID_grant == "'180815'SM81849")
+telehealth_noms_wide_test
+telehealth_noms_wide[c(3779:3900),]
+#
+telehealth_noms_wide = telehealth_noms_wide[-c(3754, 3779),] 
 telehealth_noms_base_noms = subset(telehealth_noms_wide,Assessment_new == 0)
 telehealth_noms_month6_noms = subset(telehealth_noms_wide,Assessment_new == 2)
 describe.factor(telehealth_noms_base_noms$grant)
@@ -201,10 +203,14 @@ head(telehealth_noms_base_noms)
 dim(telehealth_noms_month6_noms)
 telehealth_noms_wide_noms = merge(telehealth_noms_base_noms, telehealth_noms_month6_noms, by = "ConsumerID_grant", all.y = TRUE)
 dim(telehealth_noms_wide_noms)
+telehealth_noms_wide_noms = telehealth_noms_wide_noms[order(telehealth_noms_wide_noms$ConsumerID_grant),]
+telehealth_noms_month6_noms = telehealth_noms_month6_noms[order(telehealth_noms_month6_noms$ConsumerID_grant),]
+telehealth_noms_month6_noms$ConsumerID_grant == telehealth_noms_wide_noms$ConsumerID_grant
 
 head(telehealth_noms_month6_noms)
 describe.factor(telehealth_noms_month6_noms$telehealth)
 describe.factor(telehealth_noms_month6_noms$grant)
+describe.factor(telehealth_noms_wide_noms$telehealth.y)
 ```
 Data set descriptives
 telehealth_noms_wide_noms = CCBHC IN and IL both adults and youth, FFHC NOMS data for baseline and 6-month matched pairs 
@@ -282,6 +288,8 @@ P-change is bad for regression because of:
 (3-2)/2 
 (2-3)/3
 
+Change the telehealth.y to be face to face 1 and telehealth.y  = 0
+
 ```{r}
 library(rstanarm)
 library(descr)
@@ -290,7 +298,9 @@ my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
 describe.factor(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
 n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
 
-bayes_p_change_sat = stan_glm(log(total_month6)~ telehealth.y, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
+telehealth_noms_wide_noms_sat_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y == 1, 0, 1)
+
+bayes_p_change_sat = stan_glm(log(total_month6)~ face_to_face, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_sat_sum = round(bayes_p_change_sat$stan_summary[,c(1,3,4,10)],4)
@@ -304,10 +314,10 @@ bayes_p_change_sat_sum
 mean_sd_sat= round(compmeans(telehealth_noms_wide_noms_sat_month6_complete$total_month6, telehealth_noms_wide_noms_sat_month6_complete$telehealth.y),2)
 mean_sd_sat
 ### Get freq cohen's D, because I don't know how to get bayes cohen's D
-month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_month6, group = telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
+month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_month6, group = telehealth_noms_wide_noms_sat_month6_complete$face_to_face)
 ### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
 ## Change results from results_sat to whatever you are measuring results_(fill in name)
-results_sat = data.frame(p_change_sat = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
+results_sat = data.frame(par_estimate = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], raw_p_change = round((mean_sd_sat[2,1] -  mean_sd_sat[1,1]) /  mean_sd_sat[1,1],3), telehealth_mean =  mean_sd_sat[2,1], face_to_face_mean =  mean_sd_sat[1,1], telehealth_sd= mean_sd_sat[2,3], face_to_face_sd= mean_sd_sat[1,3],freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
 
 write.csv(results_sat, "results.csv", row.names = FALSE)
 results_sat
@@ -405,10 +415,15 @@ library(psych)
 telehealth_alc_tob$total_base = apply(telehealth_alc_tob[c(2,4)], 1, mean, na.rm = TRUE)
 ### Plug in all .y expect for telehealth.y
 telehealth_alc_tob$total_month6 = apply(telehealth_alc_tob[c(3,5)], 1, mean, na.rm = TRUE)
-hist(telehealth_alc_tob$total_base)
+hist(log(telehealth_alc_tob$total_month6))
 
 ### Make binary anything greater than 1 means you used alcohol or tobacco 
-describe.factor(telehealth_alc_tob$total_bas)
+describe.factor(telehealth_alc_tob$total_month6)
+hist(telehealth_alc_tob$total_month6)
+compmeans(telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
+describeBy (telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
+
+
 telehealth_alc_tob$total_month6 = ifelse(telehealth_alc_tob$total_month6 == 1, 1,0)
 
 ## No data for difference scores so try just 6months
@@ -432,8 +447,8 @@ describe.factor(telehealth_alc_tob_complete$telehealth.y)
 n_total = dim(telehealth_alc_tob_complete)[1]
 ## Take log of outcome to get percentage change interpretation
 
-telehealth_alc_tob_complete$telehealth.y = ifelse(telehealth_alc_tob_complete == 1, 0,1)
-bayes_p_change_al_tob = stan_glm(total_month6~ telehealth.y, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
+telehealth_alc_tob_complete$face_to_face = ifelse(telehealth_alc_tob_complete$telehealth.y == 1, 0,1)
+bayes_p_change_al_tob = stan_glm(total_month6~ face_to_face, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
 bayes_p_change_al_tob
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
@@ -444,6 +459,8 @@ bayes_p_change_al_tob_sum = round(exp(bayes_p_change_al_tob_sum),3)
 bayes_p_change_al_tob_sum= bayes_p_change_al_tob_sum - 1
 bayes_p_change_al_tob_sum
 
+### Need mean sd change here
+telehealth_alc_tob_complete
 
 
 ### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
@@ -546,83 +563,41 @@ n_total =  dim(telehealth_noms_wide_pc_complete)[1]
 ### Just do a wilcox test for now.
 mean_sd_pc = compmeans(telehealth_noms_wide_pc_complete$total_month6, telehealth_noms_wide_pc_complete$telehealth.y)
 mean_sd_pc
-### You need to flip telehealth y so you can compare telehealth to face to face to be consisent with other results
-telehealth_noms_wide_pc_complete$telehealth.y = ifelse(telehealth_noms_wide_pc_complete$telehealth.y == 1, 0,1)
 
+### This is comparing face to face with telehealth
 results_pc = wilcox.test(telehealth_noms_wide_pc_complete$total_month6 ~telehealth_noms_wide_pc_complete$telehealth.y, conf.int = TRUE)
 round(results_pc$estimate,3)
+
 
 results_pc = data.frame(diff_location = round(results_pc$estimate,3), ci_95 = paste0(round(results_pc$conf.int[1],3), ",", round(results_pc$conf.int[2],3)), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2])
 
 results_pc
 write.csv(results_pc, "results_pc.csv", row.names = FALSE)
+
+#### What percent of staff have a positive perception of care with centertone 
+telehealth_only_positive = subset(telehealth_noms_wide_pc_complete, telehealth.y == 1)
+telehealth_only_positive$positive = ifelse(telehealth_only_positive$total_month6 > 3, 1, 0)
+
+agree_p_n =  describe.factor(telehealth_only_positive$positive)
+agree_p_n = data.frame(agree_p_n)
+agree_p_n$total = apply(agree_p_n, 1, sum)
+colnames(agree_p_n) = c("agree_or_greater", "less_than_agree", "total")
+agree_p_n = round(agree_p_n,2)
+write.csv(agree_p_n, "agree_p_n.csv")
+
+#### Recomend
+recommend_agree = subset(telehealth_noms_wide_pc, telehealth.y == 1)
+recommend_agree = recommend_agree[c("telehealth.y", "RecommendAgency.y")]
+recommend_agree_complete = na.omit(recommend_agree)
+recommend_agree_complete$recommend_agree = ifelse(recommend_agree_complete$RecommendAgency.y > 3, 1, 0)
+recommend_agree_results =  data.frame(describe.factor(recommend_agree_complete$recommend_agree))
+recommend_agree_results$total = apply(recommend_agree_results, 1, sum)
+colnames(recommend_agree_results) = c("agree_or_greater", "less_than_agree", "total")
+recommend_agree_results = round(recommend_agree_results,2)
+recommend_agree_results
+write.csv(recommend_agree_results, "recommend_agree_results.csv")
 ```
 
-Vitals
-Subset for just 3 months 
-BloodPressureSystolicResponse
-BloodPressureDiastolicResponse
-WeightResponse
-HeightResponse
-WaistCircumferenceResponse
 
-BMI = https://www.diabetes.ca/managing-my-diabetes/tools---resources/body-mass-index-(bmi)-calculator
-kg/m2
 
-Not enough data yet
-```{r}
-IN_IL_KY_CCBHC_vitals = rbind(IN, IL, KY_adult)
 
-IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, Assessment == "301")
-
-IN_IL_KY_CCBHC_vitals = IN_IL_KY_CCBHC_vitals[c("FFY", "Month", "BloodPressureSystolicResponse",
-"BloodPressureDiastolicResponse", "WeightResponse", "HeightResponse", "WaistCircumferenceResponse")]
-
-IN_IL_KY_CCBHC_vitals$date = paste0(IN_IL_KY_CCBHC_vitals$FFY, "-", IN_IL_KY_CCBHC_vitals$Month, "-", "01")
-IN_IL_KY_CCBHC_vitals$date = ymd(IN_IL_KY_CCBHC_vitals$date)
-head(IN_IL_KY_CCBHC_vitals$date)
-
-IN_IL_KY_CCBHC_vitals$telehealth = ifelse(IN_IL_KY_CCBHC_vitals$date >= "2020-04-01", 1, 0)
-IN_IL_KY_CCBHC_vitals[c("date","telehealth")]
-### Cannot be greater than 2020-09-30 last day of grant
-IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, date < "2020-09-30")
-## Check that all dates post 2014 most grants are for at most five years
-IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, date > "2014-01-01")
-dim(IN_IL_KY_CCBHC_vitals)
-IN_IL_KY_CCBHC_vitals$meters_2 = (IN_IL_KY_CCBHC_vitals$HeightResponse / 100)^2
-IN_IL_KY_CCBHC_vitals$bmi = IN_IL_KY_CCBHC_vitals$WeightResponse / IN_IL_KY_CCBHC_vitals$meters_2
-hist(IN_IL_KY_CCBHC_vitals$bmi)
-#### Get rid of anyone with a BMI of greater than 150
-IN_IL_KY_CCBHC_vitals = subset(IN_IL_KY_CCBHC_vitals, bmi < 150)
-hist(IN_IL_KY_CCBHC_vitals$bmi)
-
-describe.factor(IN_IL_KY_CCBHC_vitals$telehealth)
-#########################################################
-#### Bayes analysis
-my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
-describe.factor(IN_IL_KY_CCBHC_vitals$telehealth)
-n_total = dim(IN_IL_KY_CCBHC_vitals)[1]
-
-bayes_p_change_bmi = stan_glm(log(bmi)~ telehealth, prior = my_prior, data = IN_IL_KY_CCBHC_vitals, seed = 123)
-### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
-## check bayes_p_change_bmi$stan_summary if you are unsure
-bayes_p_change_bmi_sum = round(bayes_p_change_bmi$stan_summary[,c(1,3,4,10)],4)
-## To get percentage change interpretation need to exp the parameter estimates
-bayes_p_change_bmi_sum = round(exp(bayes_p_change_bmi_sum),3)
-### Creates a percentage instead 1 + % 
-bayes_p_change_bmi_sum= bayes_p_change_bmi_sum - 1
-bayes_p_change_bmi_sum
-
-### Grabing the means, sds, and n's for each group
-mean_sd_bmi= round(compmeans(IN_IL_KY_CCBHC_vitals$bmi, IN_IL_KY_CCBHC_vitals$telehealth),2)
-mean_sd_bmi
-(30.87-31.56)/31.56
-### Get freq cohen's D, because I don't know how to get bayes cohen's D
-month_6_bmi_d =  cohen.d(IN_IL_KY_CCBHC_vitals$bmi, group = IN_IL_KY_CCBHC_vitals$telehealth)
-### Put together the results.  Should not need to change this.  See example telehealth_noms_bmi_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
-## Change results from results_bmi to whatever you are measuring results_(fill in name)
-results_bmi = data.frame(p_change_bmi = bayes_p_change_bmi_sum[2,1], sd_p_change =  bayes_p_change_bmi_sum[2,2], ci_95 = paste0(bayes_p_change_bmi_sum[2,3], ",", bayes_p_change_bmi_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_bmi[1,2], n_post_telehealth = mean_sd_bmi[2,2], freq_cohen_d = round(month_6_bmi_d$cohen.d[2],3))
-
-write.csv(results_bmi, "results.csv", row.names = FALSE)
-results_bmi
-```
