@@ -249,7 +249,7 @@ omega_sat_6month =  omega(telehealth_noms_wide_noms_sat[c(3,5,7,9)], poly = TRUE
 omega_sat_6month
 
 ### Plug in all the .x variables 
-vss(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly")
+vss(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly", n = 3)
 fa(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly", correct = 0)
 
 ### Plug in all the .y variables except telehealth.y 
@@ -317,7 +317,7 @@ month_6_sat_d =  cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_mon
 ## Change results from results_sat to whatever you are measuring results_(fill in name)
 results_sat = data.frame(par_estimate = bayes_p_change_sat_sum[2,1], sd_p_change =  bayes_p_change_sat_sum[2,2], ci_95 = paste0(bayes_p_change_sat_sum[2,3], ",", bayes_p_change_sat_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], raw_p_change = round((mean_sd_sat[2,1] -  mean_sd_sat[1,1]) /  mean_sd_sat[1,1],3), telehealth_mean =  mean_sd_sat[2,1], face_to_face_mean =  mean_sd_sat[1,1], telehealth_sd= mean_sd_sat[2,3], face_to_face_sd= mean_sd_sat[1,3],freq_cohen_d = round(month_6_sat_d$cohen.d[2],3))
 
-write.csv(results_sat, "results.csv", row.names = FALSE)
+write.csv(results_sat, "results_sat.csv", row.names = FALSE)
 results_sat
 
 ```
@@ -363,7 +363,7 @@ vss(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], cor = "poly")
 fa(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], cor = "poly", correct = 0)
 
 ### Plug in all the .y variables except telehealth.y 
-vss(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly")
+vss(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly", n = 3)
 fa(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly", correct = 0)
 
 
@@ -414,7 +414,7 @@ month_6_deal_d =  cohen.d(telehealth_noms_wide_noms_deal_month6_complete$total_m
 ## Change results from results_sat to whatever you are measuring results_(fill in name)
 results_deal = data.frame(par_estimate = bayes_p_change_deal_sum[2,1], sd_p_change =  bayes_p_change_deal_sum[2,2], ci_95 = paste0(bayes_p_change_deal_sum[2,3], ",", bayes_p_change_deal_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_deal[1,2], n_post_telehealth = mean_sd_deal[2,2], raw_p_change = round((mean_sd_deal[2,1] -  mean_sd_deal[1,1]) /  mean_sd_deal[1,1],3), telehealth_mean =  mean_sd_deal[2,1], face_to_face_mean =  mean_sd_deal[1,1], telehealth_sd= mean_sd_deal[2,3], face_to_face_sd= mean_sd_deal[1,3],freq_cohen_d = round(month_6_deal_d$cohen.d[2],3))
 
-write.csv(results_deal, "results.csv", row.names = FALSE)
+write.csv(results_deal, "results_deal.csv", row.names = FALSE)
 results_deal
 
 ```
@@ -662,7 +662,3 @@ recommend_agree_results = round(recommend_agree_results,2)
 recommend_agree_results
 write.csv(recommend_agree_results, "recommend_agree_results.csv")
 ```
-
-
-
-
