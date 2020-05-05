@@ -627,14 +627,14 @@ telehealth_noms_wide_pc_complete = na.omit(telehealth_noms_wide_pc[c("telehealth
 n_total =  dim(telehealth_noms_wide_pc_complete)[1]
 ### Just do a wilcox test for now.
 mean_sd_pc = compmeans(telehealth_noms_wide_pc_complete$total_month6, telehealth_noms_wide_pc_complete$telehealth.y)
-mean_sd_pc
+mean_sd_pc = round(mean_sd_pc,3)
 
 ### This is comparing face to face with telehealth
 results_pc = wilcox.test(telehealth_noms_wide_pc_complete$total_month6 ~telehealth_noms_wide_pc_complete$telehealth.y, conf.int = TRUE)
 round(results_pc$estimate,3)
 
 
-results_pc = data.frame(diff_location = round(results_pc$estimate,3), ci_95 = paste0(round(results_pc$conf.int[1],3), ",", round(results_pc$conf.int[2],3)), n_total = n_total, n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2])
+results_pc = data.frame(diff_location = round(results_pc$estimate,3), ci_95 = paste0(round(results_pc$conf.int[1],3), ",", round(results_pc$conf.int[2],3)), n_total = n_total, n_pre_telehealth = mean_sd_pc[1,2], n_post_telehealth = mean_sd_pc[2,2], mean_telehealth = mean_sd_pc[2,1], mean_pre_telehealth = mean_sd_pc[1,1])
 
 results_pc
 write.csv(results_pc, "results_pc.csv", row.names = FALSE)
