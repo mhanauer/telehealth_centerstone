@@ -130,7 +130,6 @@ ICP$grant = rep("ICP", dim(ICP)[1])
 SOCAT$grant = rep("SOCAT", dim(SOCAT)[1])
 FL_ACT$grant = rep("FL_ACT", dim(FL_ACT)[1])
 dim(SOCAT)
-dim(IN_IL_CCBHC)
 telehealth_noms = rbind(IN_IL_KY_CCBHC, FHHC, ICP, SOCAT, FL_ACT)
 dim(telehealth_noms)
 ### Create a new ConsumerID that is a mix of grant and ConsumerID
@@ -152,6 +151,7 @@ telehealth_noms$Assessment_new = as.numeric(telehealth_noms$Assessment_new)
 describe.factor(telehealth_noms$Assessment_new, decr.order= FALSE)
 ### Create full date variable
 telehealth_noms$date = paste0(telehealth_noms$FFY, "-", telehealth_noms$Month, "-", "01")
+library(lubridate)
 telehealth_noms$date = ymd(telehealth_noms$date)
 head(telehealth_noms$date)
 
@@ -295,7 +295,6 @@ library(rstanarm)
 library(descr)
 ### Scale is .2 which means 20% difference in each direction
 my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
-describe.factor(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y)
 n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
 
 bayes_p_change_sat = stan_glm(log(total_month6)~ face_to_face, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
@@ -319,6 +318,21 @@ results_sat = data.frame(par_estimate = bayes_p_change_sat_sum[2,1], sd_p_change
 
 write.csv(results_sat, "results_sat.csv", row.names = FALSE)
 results_sat
+graph_results_sat = matrix(c(results_sat$n_pre_telehealth, results_sat$n_post_telehealth,  results_sat$face_to_face_mean, results_sat$telehealth_mean), ncol = 2, byrow = FALSE)
+graph_results_sat = data.frame(graph_results_sat)
+colnames(graph_results_sat) = c("N", "Mean")
+graph_results_sat$telehealth = as.factor(c(0,1))
+graph_results_sat
+
+### Create a graph of mean before and after
+plot_sat = ggplot(graph_results_sat, aes(x = telehealth,y =Mean, fill = telehealth))+
+  geom_bar(stat = "identity", position = "dodge2")+
+  labs(title=, y = "Mean", x = "Telehealth 0 = No; 1 = Yes")+
+  scale_y_continuous(limits = c(0,5))+
+  geom_text(aes(label = N), position=position_dodge(width=0.9), vjust=-0.25)+
+  labs(fill = "Mean")
+plot_sat
+### Really not much of change no need for graphs
 
 ```
 #################
