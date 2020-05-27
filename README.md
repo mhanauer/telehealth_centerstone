@@ -53,13 +53,13 @@ telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with 
 
 ###
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
-IL =  read.csv("CCBHC_IL_4_14_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+KY =  read.csv("CCBHC_IL_4_14_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 IN =  read.csv("CCBHC_IN_4_15_20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-FHHC = read.csv("fhhc_noms_4_22_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-ICP = read.csv("ICP_NOMS_Data Download 4.24.2020.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-SOCAT = read.csv("SOCAT NOMs download 4.27.20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-KY_adult = read.csv("4_27_20 Adult_CCBHC_KY.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
-KY_youth = read.csv("4_27_20 Child_CCBHC_KY.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+FHHC = read.csv("fhhc_noms_5_27_20.csv", header= TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+ICP = read.csv("SPARS Data Download 5.23.2020_ICP.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+SOCAT = read.csv("SOCAT NOMs download 5.27.20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+IL_adult = read.csv("data down 5.26.20 adult CCBHC IL.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
+IL_youth = read.csv("data down 5.26.20 child CCBHC IL.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 FL_ACT = read.csv("FL_ACT_4_30_20.csv", header = TRUE, na.strings = c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
 
 ## Now stack them
@@ -90,33 +90,33 @@ SOCAT_full$Housing = SOCAT$Housing
 SOCAT = SOCAT_full
 describe.factor(FHHC$Assessment)
 
-KY_youth$RespondentType = NULL
-KY_youth_matrix = matrix(NA, ncol = 185-43, nrow = dim(KY_youth)[1])
-KY_youth_matrix = data.frame(KY_youth_matrix)
-colnames(KY_youth_matrix) = colnames(ICP[,44:185])
-KY_youth_full = data.frame(KY_youth[,1:43], KY_youth_matrix)
-dim(KY_youth_full)
+IL_youth$RespondentType = NULL
+IL_youth_matrix = matrix(NA, ncol = 185-43, nrow = dim(IL_youth)[1])
+IL_youth_matrix = data.frame(IL_youth_matrix)
+colnames(IL_youth_matrix) = colnames(ICP[,44:185])
+IL_youth_full = data.frame(IL_youth[,1:43], IL_youth_matrix)
+dim(IL_youth_full)
 ### Change variables that match
-KY_youth_full$Nervous = KY_youth$Nervous
-KY_youth_full$Hopeless = KY_youth$Hopeless
-KY_youth_full$Restless = KY_youth$Restless
-KY_youth_full$Depressed = KY_youth$Depressed
-KY_youth_full$EverythingEffort = KY_youth$EverythingEffort
-KY_youth_full$Worthless = KY_youth$Worthless
-KY_youth_full$Tobacco_Use = KY_youth$Tobacco_Use
-KY_youth_full$Alcohol_Use = KY_youth$Alcohol_Use
-KY_youth_full$StreetOpioids_Use = KY_youth$StreetOpioids_Use
-KY_youth_full$RxOpioids_Use = KY_youth$RxOpioids_Use
-KY_youth_full$NightsHomeless = KY_youth$NightsHomeless
-KY_youth_full$NightsHospitalMHC = KY_youth$NightsHospitalMHC
-KY_youth_full$NightsDetox = KY_youth$NightsDetox
-KY_youth_full$NightsJail = KY_youth$NightsJail
-KY_youth_full$TimesER = KY_youth$TimesER
-KY_youth_full$Housing = KY_youth$Housing
-KY_youth = KY_youth_full
+IL_youth_full$Nervous = IL_youth$Nervous
+IL_youth_full$Hopeless = IL_youth$Hopeless
+IL_youth_full$Restless = IL_youth$Restless
+IL_youth_full$Depressed = IL_youth$Depressed
+IL_youth_full$EverythingEffort = IL_youth$EverythingEffort
+IL_youth_full$Worthless = IL_youth$Worthless
+IL_youth_full$Tobacco_Use = IL_youth$Tobacco_Use
+IL_youth_full$Alcohol_Use = IL_youth$Alcohol_Use
+IL_youth_full$StreetOpioids_Use = IL_youth$StreetOpioids_Use
+IL_youth_full$RxOpioids_Use = IL_youth$RxOpioids_Use
+IL_youth_full$NightsHomeless = IL_youth$NightsHomeless
+IL_youth_full$NightsHospitalMHC = IL_youth$NightsHospitalMHC
+IL_youth_full$NightsDetox = IL_youth$NightsDetox
+IL_youth_full$NightsJail = IL_youth$NightsJail
+IL_youth_full$TimesER = IL_youth$TimesER
+IL_youth_full$Housing = IL_youth$Housing
+IL_youth = IL_youth_full
 
 
-IN_IL_KY_CCBHC = rbind(IN[,1:185], IL[,1:185], KY_youth[,1:185], KY_adult[,1:185])
+IN_IL_KY_CCBHC = rbind(IN[,1:185], IL[,1:185], IL_youth[,1:185], IL_adult[,1:185], KY[,1:185])
 dim(IN_IL_KY_CCBHC)
 FHHC = FHHC[,1:185]
 ICP = ICP[,1:185]
