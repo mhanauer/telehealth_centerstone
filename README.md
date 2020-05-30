@@ -237,7 +237,8 @@ how satisfied are you with your personal relationships? RelationshipSatisfaction
 
 ```{r}
 ### All items should be 1 to 5
-telehealth_noms_wide_noms_sat = telehealth_noms_wide_noms[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y")]
+telehealth_noms_wide_noms$RaceWhite.y
+telehealth_noms_wide_noms_sat = telehealth_noms_wide_noms[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y", "Agegroup.y", "Gender.y", "RaceWhite.y")]
 apply(telehealth_noms_wide_noms_sat,2, function(x){describe.factor(x)})
 library(psych)
 
@@ -271,7 +272,7 @@ range(telehealth_noms_wide_noms_sat$total_month6, na.rm = TRUE)
 dim(telehealth_noms_wide_noms_sat)
 head(telehealth_noms_wide_noms_sat)
 telehealth_noms_wide_noms_sat
-telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y")])
+telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y")])
 dim(telehealth_noms_wide_noms_sat_month6_complete)
 telehealth_noms_wide_noms_sat_month6_complete
 telehealth_noms_wide_noms_sat_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y == 1,0,1)
@@ -296,7 +297,7 @@ library(descr)
 my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
 n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
 
-bayes_p_change_sat = stan_glm(log(total_month6)~ face_to_face, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
+bayes_p_change_sat = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gender.y+ RaceWhite.y, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_sat_sum = round(bayes_p_change_sat$stan_summary[,c(1,3,4,10)],4)
@@ -361,7 +362,7 @@ g.	My housing situation is satisfactory.
 h.	My symptoms are not bothering me.
 
 ```{r}
-telehealth_noms_wide_noms_deal = telehealth_noms_wide_noms[c("telehealth.y", "HandlingDailyLife.x", "HandlingDailyLife.y", "ControlLife.x", "ControlLife.y", "DealWithCrisis.x", "DealWithCrisis.y", "GetsAlongWithFamily.x","GetsAlongWithFamily.y", "SocialSituations.x", "SocialSituations.y", "SchoolOrWork.x", "SchoolOrWork.y", "FunctioningHousing.x", "FunctioningHousing.y", "Symptoms.x","Symptoms.y")]
+telehealth_noms_wide_noms_deal = telehealth_noms_wide_noms[c("telehealth.y", "HandlingDailyLife.x", "HandlingDailyLife.y", "ControlLife.x", "ControlLife.y", "DealWithCrisis.x", "DealWithCrisis.y", "GetsAlongWithFamily.x","GetsAlongWithFamily.y", "SocialSituations.x", "SocialSituations.y", "SchoolOrWork.x", "SchoolOrWork.y", "FunctioningHousing.x", "FunctioningHousing.y", "Symptoms.x","Symptoms.y", "Agegroup.y", "Gender.y", "RaceWhite.y")]
 apply(telehealth_noms_wide_noms_deal,2, function(x){describe.factor(x)})
 library(psych)
 
@@ -393,7 +394,7 @@ range(telehealth_noms_wide_noms_deal$total_month6, na.rm = TRUE)
 dim(telehealth_noms_wide_noms_deal)
 head(telehealth_noms_wide_noms_deal)
 telehealth_noms_wide_noms_deal
-telehealth_noms_wide_noms_deal_month6_complete = na.omit(telehealth_noms_wide_noms_deal[c("total_month6", "telehealth.y")])
+telehealth_noms_wide_noms_deal_month6_complete = na.omit(telehealth_noms_wide_noms_deal[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y")])
 dim(telehealth_noms_wide_noms_deal_month6_complete)
 telehealth_noms_wide_noms_deal_month6_complete
 telehealth_noms_wide_noms_deal_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_deal_month6_complete$telehealth.y == 1,0,1)
@@ -408,7 +409,7 @@ my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
 describe.factor(telehealth_noms_wide_noms_deal_month6_complete$telehealth.y)
 n_total = dim(telehealth_noms_wide_noms_deal_month6_complete)[1]
 
-bayes_p_change_deal = stan_glm(log(total_month6)~ face_to_face, prior = my_prior, data = telehealth_noms_wide_noms_deal_month6_complete, seed = 123)
+bayes_p_change_deal = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gender.y+ RaceWhite.y, prior = my_prior, data = telehealth_noms_wide_noms_deal_month6_complete, seed = 123)
 #launch_shinystan(bayes_p_change_deal)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
@@ -451,23 +452,23 @@ e.	that everything was an effort?
 f.	worthless?
 ```{r}
 
-telehealth_noms_wide_noms_feel = telehealth_noms_wide_noms[c("telehealth.y", "Nervous.y", "Hopeless.y", "Restless.y", "Depressed.y", "EverythingEffort.y", "Worthless.y")]
+telehealth_noms_wide_noms_feel = telehealth_noms_wide_noms[c("telehealth.y", "Nervous.y", "Hopeless.y", "Restless.y", "Depressed.y", "EverythingEffort.y", "Worthless.y", "Agegroup.y", "Gender.y", "RaceWhite.y")]
 apply(telehealth_noms_wide_noms_feel,2, function(x){describe.factor(x)})
 library(psych)
-#Scale is changed to add one so I can take the log!!!!!!!!!
-telehealth_noms_wide_noms_feel[c(2:6)] = telehealth_noms_wide_noms_feel[c(2:6)]+1
+
+telehealth_noms_wide_noms_feel[c(2:7)] = telehealth_noms_wide_noms_feel[c(2:7)]+1
 ### Plug in all the .y variables except telehealth.y 
-omega_feel_6month =  omega(telehealth_noms_wide_noms_feel[c(2:6)], poly = TRUE)
+omega_feel_6month =  omega(telehealth_noms_wide_noms_feel[c(2:7)], poly = TRUE)
 omega_feel_6month
 
 ### Plug in all the .y variables except telehealth.y 
-vss(telehealth_noms_wide_noms_feel[c(2:6)], cor = "poly", n = 3)
-fa(telehealth_noms_wide_noms_feel[c(2:6)], cor = "poly", correct = 0)
+vss(telehealth_noms_wide_noms_feel[c(2:7)], cor = "poly", n = 3)
+fa(telehealth_noms_wide_noms_feel[c(2:7)], cor = "poly", correct = 0)
 
 
 
 ### Plug in all .y expect for telehealth.y
-telehealth_noms_wide_noms_feel$total_month6 = apply(telehealth_noms_wide_noms_feel[c(2:6)], 1, mean, na.rm = TRUE)
+telehealth_noms_wide_noms_feel$total_month6 = apply(telehealth_noms_wide_noms_feel[c(2:7)], 1, mean, na.rm = TRUE)
 hist(log(telehealth_noms_wide_noms_feel$total_month6))
 
 ## No data for difference scores so try just 6months
@@ -475,7 +476,11 @@ range(telehealth_noms_wide_noms_feel$total_month6, na.rm = TRUE)
 dim(telehealth_noms_wide_noms_feel)
 head(telehealth_noms_wide_noms_feel)
 telehealth_noms_wide_noms_feel
-telehealth_noms_wide_noms_feel_month6_complete = na.omit(telehealth_noms_wide_noms_feel[c("total_month6", "telehealth.y")])
+telehealth_noms_wide_noms_feel_month6_complete = na.omit(telehealth_noms_wide_noms_feel[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y")])
+
+#Scale is changed to add one so I can take the log!!!!!!!!! Need to change after NA
+
+
 dim(telehealth_noms_wide_noms_feel_month6_complete)
 telehealth_noms_wide_noms_feel_month6_complete
 telehealth_noms_wide_noms_feel_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_feel_month6_complete$telehealth.y == 1,0,1)
@@ -492,7 +497,7 @@ n_total = dim(telehealth_noms_wide_noms_feel_month6_complete)[1]
 telehealth_noms_wide_noms_feel_month6_complete
 apply(telehealth_noms_wide_noms_feel_month6_complete, 2, function(x){describe.factor(x)})
 
-bayes_p_change_feel = stan_glm(log(total_month6)~ face_to_face, prior = my_prior, data = telehealth_noms_wide_noms_feel_month6_complete, seed = 123)
+bayes_p_change_feel = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gender.y+ RaceWhite.y, prior = my_prior, data = telehealth_noms_wide_noms_feel_month6_complete, seed = 123)
 #launch_shinystan(bayes_p_change_feel)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
@@ -538,7 +543,7 @@ StreetOpioids_Use
 
 ### All items should be 1 to 5
 ### Not enough for drugs
-telehealth_alc_tob = telehealth_noms_wide_noms[c("telehealth.y", "Tobacco_Use.x", "Tobacco_Use.y", "Alcohol_Use.x", "Alcohol_Use.y")]
+telehealth_alc_tob = telehealth_noms_wide_noms[c("telehealth.y", "Tobacco_Use.x", "Tobacco_Use.y", "Alcohol_Use.x", "Alcohol_Use.y", "Agegroup.y", "Gender.y", "RaceWhite.y")]
 apply(telehealth_alc_tob,2, function(x){describe.factor(x)})
 library(psych)
 ### Only two items not needed.
@@ -578,7 +583,7 @@ range(telehealth_alc_tob$total_month6, na.rm = TRUE)
 dim(telehealth_alc_tob)
 head(telehealth_alc_tob)
 telehealth_alc_tob
-telehealth_alc_tob_complete = na.omit(telehealth_alc_tob[c("total_month6", "telehealth.y")])
+telehealth_alc_tob_complete = na.omit(telehealth_alc_tob[c("total_month6", "telehealth.y","Agegroup.y", "Gender.y", "RaceWhite.y")])
 dim(telehealth_alc_tob_complete)
 telehealth_alc_tob_complete
 describe.factor(telehealth_alc_tob_complete$telehealth.y)
@@ -596,7 +601,7 @@ n_total = dim(telehealth_alc_tob_complete)[1]
 ## Take log of outcome to get percentage change interpretation
 
 telehealth_alc_tob_complete$face_to_face = ifelse(telehealth_alc_tob_complete$telehealth.y == 1, 0,1)
-bayes_p_change_al_tob = stan_glm(total_month6~ face_to_face, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
+bayes_p_change_al_tob = stan_glm(total_month6~ face_to_face + Agegroup.y + Gender.y + RaceWhite.y, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
 bayes_p_change_al_tob
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
