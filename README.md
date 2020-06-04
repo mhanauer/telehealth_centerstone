@@ -50,7 +50,7 @@ telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with 
 
 ### Run this prior to any analysis to load data ####
 ```{r}
-
+library(prettyR)
 ###
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
 IN =  read.csv("CCBHC_IN_5.28.20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
@@ -87,7 +87,6 @@ SOCAT_full$NightsJail = SOCAT$NightsJail
 SOCAT_full$TimesER = SOCAT$TimesER
 SOCAT_full$Housing = SOCAT$Housing
 SOCAT = SOCAT_full
-describe.factor(FHHC$Assessment)
 
 IL_youth$RespondentType = NULL
 IL_youth_matrix = matrix(NA, ncol = 185-43, nrow = dim(IL_youth)[1])
@@ -136,13 +135,11 @@ telehealth_noms$ConsumerID_grant = paste0(telehealth_noms$ConsumerID, telehealth
 
 ### Figure out how you can stack FHHC data
 dim(telehealth_noms)
-describe.factor(telehealth_noms$grant) 
 
-describe.factor(telehealth_noms$Assessment)
 ## Rename to the above
 
 ## No one has multiple reassessments
-describe.factor(telehealth_noms$ReassessmentNumber_07)
+
 
 ## Create recoded assessment variable
 telehealth_noms$Assessment_new = ifelse(telehealth_noms$Assessment == 600, 0, ifelse(telehealth_noms$Assessment == 301, 1, ifelse(telehealth_noms$Assessment == 302, 2, ifelse(telehealth_noms$Assessment == 303, 3, ifelse(telehealth_noms$Assessment == 601,2, NA)))))
@@ -210,6 +207,9 @@ head(telehealth_noms_month6_noms)
 describe.factor(telehealth_noms_month6_noms$telehealth)
 describe.factor(telehealth_noms_month6_noms$grant)
 describe.factor(telehealth_noms_wide_noms$telehealth.y)
+
+telehealth_noms_wide_noms$Gender.y = ifelse(telehealth_noms_wide_noms$Gender.y == 2, 1, 0)
+
 ```
 Data set descriptives
 telehealth_noms_wide_noms = CCBHC IN and IL both adults and youth, FFHC NOMS data for baseline and 6-month matched pairs 
@@ -271,11 +271,16 @@ hist(telehealth_noms_wide_noms_sat$total_month6)
 range(telehealth_noms_wide_noms_sat$total_month6, na.rm = TRUE)
 dim(telehealth_noms_wide_noms_sat)
 head(telehealth_noms_wide_noms_sat)
-telehealth_noms_wide_noms_sat
+
+
 telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y")])
 dim(telehealth_noms_wide_noms_sat_month6_complete)
 telehealth_noms_wide_noms_sat_month6_complete
+
+### creating face to face
 telehealth_noms_wide_noms_sat_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_sat_month6_complete$telehealth.y == 1,0,1)
+
+apply(telehealth_noms_wide_noms_sat_month6_complete, 2, function(x){describe.factor(x)})
 
 ```
 Analysis sat
@@ -318,21 +323,7 @@ results_sat = data.frame(par_estimate = bayes_p_change_sat_sum[2,1], sd_p_change
 
 write.csv(results_sat, "results_sat.csv", row.names = FALSE)
 results_sat
-graph_results_sat = matrix(c(results_sat$n_pre_telehealth, results_sat$n_post_telehealth,  results_sat$face_to_face_mean, results_sat$telehealth_mean), ncol = 2, byrow = FALSE)
-graph_results_sat = data.frame(graph_results_sat)
-colnames(graph_results_sat) = c("N", "Mean")
-graph_results_sat$telehealth = as.factor(c(0,1))
-graph_results_sat
 
-### Create a graph of mean before and after
-plot_sat = ggplot(graph_results_sat, aes(x = telehealth,y =Mean, fill = telehealth))+
-  geom_bar(stat = "identity", position = "dodge2")+
-  labs(title=, y = "Mean", x = "Telehealth 0 = No; 1 = Yes")+
-  scale_y_continuous(limits = c(0,5))+
-  geom_text(aes(label = N), position=position_dodge(width=0.9), vjust=-0.25)+
-  labs(fill = "Mean")
-plot_sat
-### Really not much of change no need for graphs
 
 ```
 #################
@@ -398,7 +389,6 @@ telehealth_noms_wide_noms_deal_month6_complete = na.omit(telehealth_noms_wide_no
 dim(telehealth_noms_wide_noms_deal_month6_complete)
 telehealth_noms_wide_noms_deal_month6_complete
 telehealth_noms_wide_noms_deal_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_deal_month6_complete$telehealth.y == 1,0,1)
-
 
 
 
