@@ -51,6 +51,8 @@ telehealth: Telehealth = 1; Pre-telehealth = 0 telehealth defined as those with 
 ### Run this prior to any analysis to load data ####
 ```{r}
 library(prettyR)
+library(see)
+library(performance)
 ###
 setwd("T:/CRI_Research/telehealth_evaluation/data_codebooks")
 IN =  read.csv("CCBHC_IN_5.28.20.csv", header = TRUE, na.strings =  c(-99, -98, -1, -2, -3, -4, -5, -6, -7, -8, -9))
@@ -112,7 +114,6 @@ IL_youth_full$NightsJail = IL_youth$NightsJail
 IL_youth_full$TimesER = IL_youth$TimesER
 IL_youth_full$Housing = IL_youth$Housing
 IL_youth = IL_youth_full
-
 
 IN_IL_KY_CCBHC = rbind(IN[,1:185], IL_youth[,1:185], IL_adult[,1:185])
 dim(IN_IL_KY_CCBHC)
@@ -208,12 +209,22 @@ describe.factor(telehealth_noms_month6_noms$telehealth)
 describe.factor(telehealth_noms_month6_noms$grant)
 describe.factor(telehealth_noms_wide_noms$telehealth.y)
 
+### Gender is female
 telehealth_noms_wide_noms$Gender.y = ifelse(telehealth_noms_wide_noms$Gender.y == 2, 1, 0)
 
+#### Create diagnosis variables
+describe.factor(telehealth_noms_wide_noms$DiagnosisOne.y)
+test_dat = subset(telehealth_noms_wide_noms, DiagnosisOne.y == "59")
+describe.factor(test_dat$telehealth.y)
+
+### Enough 62 which is 62 = F40-F48 – Anxiety, dissociative, stress-related, somatoform and other nonpsychotic mental disorders
+#59 = F33 – Major depressive disorder, recurrent
+#57 = F31 – Bipolar disorder
+telehealth_noms_wide_noms$dep = ifelse(telehealth_noms_wide_noms_sat$DiagnosisOne.y == 59, 1, 0)
+telehealth_noms_wide_noms$bipolar = ifelse(telehealth_noms_wide_noms_sat$DiagnosisOne.y == 57, 1, 0)
+describe.factor(telehealth_noms_wide_noms$dep)
+
 ```
-Data set descriptives
-telehealth_noms_wide_noms = CCBHC IN and IL both adults and youth, FFHC NOMS data for baseline and 6-month matched pairs 
-### Finish this later
 
 ################################################
 Full data set created can start data analysis
@@ -233,14 +244,19 @@ how satisfied are you with your personal relationships? RelationshipSatisfaction
 2. Check the descriptives to make sure everything is in range
 3. Conduct psychometrics 
 
+SMI
+Major depressive, bioplor and schizoprenia
+https://www.psychiatry.org/patients-families/what-is-mental-illness#:~:text=Examples%20of%20serious%20mental%20illness,disorder%2C%20schizophrenia%20and%20bipolar%20disorder.
+https://mentalillnesspolicy.org/serious-mental-illness-not/
+http://www.bhevolution.org/public/severe_mental_illness.page
 
 
 ```{r}
 ### All items should be 1 to 5
-telehealth_noms_wide_noms$RaceWhite.y
-telehealth_noms_wide_noms_sat = telehealth_noms_wide_noms[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y", "Agegroup.y", "Gender.y", "RaceWhite.y")]
+telehealth_noms_wide_noms_sat = telehealth_noms_wide_noms[c("telehealth.y", "PerformDailyActivitiesSatisfaction.x", "PerformDailyActivitiesSatisfaction.y", "HealthSatisfaction.x", "HealthSatisfaction.y", "SelfSatisfaction.x", "SelfSatisfaction.y", "RelationshipSatisfaction.x","RelationshipSatisfaction.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")]
 apply(telehealth_noms_wide_noms_sat,2, function(x){describe.factor(x)})
 library(psych)
+
 
 ### Plug in all the .x variables 
 omega_sat_base =  omega(telehealth_noms_wide_noms_sat[c(2,4,6,8)], poly = TRUE)
@@ -272,8 +288,7 @@ range(telehealth_noms_wide_noms_sat$total_month6, na.rm = TRUE)
 dim(telehealth_noms_wide_noms_sat)
 head(telehealth_noms_wide_noms_sat)
 
-
-telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y")])
+telehealth_noms_wide_noms_sat_month6_complete = na.omit(telehealth_noms_wide_noms_sat[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")])
 dim(telehealth_noms_wide_noms_sat_month6_complete)
 telehealth_noms_wide_noms_sat_month6_complete
 
@@ -326,6 +341,98 @@ results_sat
 
 
 ```
+Sat with diagnoses 
+
+```{r}
+
+### Scale is .2 which means 20% difference in each direction
+my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
+n_total = dim(telehealth_noms_wide_noms_sat_month6_complete)[1]
+
+bayes_p_change_sat_dep = stan_glm(log(total_month6)~ face_to_face*dep +face_to_face*bipolar + Agegroup.y+ Gender.y+ RaceWhite.y, prior = my_prior, data = telehealth_noms_wide_noms_sat_month6_complete, seed = 123)
+##
+#launch_shinystan(bayes_p_change_sat_dep)
+check_collinearity(bayes_p_change_sat_dep)
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat_dep$stan_summary if you are unsure
+bayes_p_change_sat_dep_sum = round(bayes_p_change_sat_dep$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_sat_dep_sum = round(exp(bayes_p_change_sat_dep_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_sat_dep_sum= bayes_p_change_sat_dep_sum - 1
+bayes_p_change_sat_dep_sum
+
+### Grabing the means, sds, and n's for each group
+mean_sd_sat_dep= round(compmeans(telehealth_noms_wide_noms_sat_month6_complete$total_month6, telehealth_noms_wide_noms_sat_month6_complete$telehealth.y),2)
+mean_sd_sat_dep
+### Get freq cohen's D, because I don't know how to get bayes cohen's D
+month_6_sat_dep_d =  psych::cohen.d(telehealth_noms_wide_noms_sat_month6_complete$total_month6, group = telehealth_noms_wide_noms_sat_month6_complete$face_to_face)
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_dep_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat_dep to whatever you are measuring results_(fill in name)
+results_sat_dep = data.frame(par_estimate = bayes_p_change_sat_dep_sum[2,1], sd_p_change =  bayes_p_change_sat_dep_sum[2,2], ci_95 = paste0(bayes_p_change_sat_dep_sum[2,3], ",", bayes_p_change_sat_dep_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_sat_dep[1,2], n_post_telehealth = mean_sd_sat_dep[2,2], raw_p_change = round((mean_sd_sat_dep[2,1] -  mean_sd_sat_dep[1,1]) /  mean_sd_sat_dep[1,1],3), telehealth_mean =  mean_sd_sat_dep[2,1], face_to_face_mean =  mean_sd_sat_dep[1,1], telehealth_sd= mean_sd_sat_dep[2,3], face_to_face_sd= mean_sd_sat_dep[1,3],freq_cohen_d = round(month_6_sat_dep_d$cohen.d[2],3))
+
+write.csv(results_sat_dep, "results_sat_dep.csv", row.names = FALSE)
+results_sat_dep
+
+
+```
+Sat with diagnosis with t.test for just telehealth
+```{r}
+sat_diag_tele_only_dat = subset(telehealth_noms_wide_noms_sat_month6_complete, telehealth.y == 1)
+hist(sat_diag_tele_only_dat$total_month6)
+qqnorm(sat_diag_tele_only_dat$total_month6)
+compmeans(sat_diag_tele_only_dat$total_month6, sat_diag_tele_only_dat$dep)
+
+### recode dep so it compares dep first relative to not depressed
+sat_diag_tele_only_dat$dep_recode = ifelse(sat_diag_tele_only_dat$dep == 1, 0,1)
+dep_sat = t.test(sat_diag_tele_only_dat$total_month6 ~ sat_diag_tele_only_dat$dep_recode)
+dep_sat = data.frame(t_value = dep_sat$statistic, p_value = dep_sat$p.value, lower = dep_sat$conf.int[1], upper = dep_sat$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(sat_diag_tele_only_dat$total_month6 ~ sat_diag_tele_only_dat$dep_recode)
+
+n_dep_sat =describe.factor(sat_diag_tele_only_dat$dep)
+n_dep_sat = data.frame(n_dep_sat)
+n_dep_sat = n_dep_sat[1,]
+n_dep_sat = data.frame(n_dep_sat)
+colnames(n_dep_sat) = n_dep_sat
+colnames(n_dep_sat) = c("No major depression count", "Major depression count")
+n_sat_dat = data.frame(dim(sat_diag_tele_only_dat)[1])
+colnames(n_sat_dat) = "Satisfaction total n"
+
+sat_dep_means = compmeans(sat_diag_tele_only_dat$total_month6, sat_diag_tele_only_dat$dep)
+
+sat_dep_d = psych::cohen.d(sat_diag_tele_only_dat$total_month6, group = sat_diag_tele_only_dat$dep)
+
+
+results_sat_dep = data.frame(dep_sat, n_total = n_sat_dat, n_dep_sat[2], n_dep_sat[1], raw_p_change = round((sat_dep_means[2,1] -  sat_dep_means[1,1]) /  sat_dep_means[1,1],3), dep_mean =  sat_dep_means[2,1], no_dep_mean =  sat_dep_means[1,1], dep_sd= sat_dep_means[2,3], no_dep_sd= sat_dep_means[1,3],freq_cohen_d = round(sat_dep_d$cohen.d[2],3))
+results_sat_dep = round(results_sat_dep, 3)
+library(gt)
+title_results_sat_dep = "T-test results for satisfaction with outcomes at 6-months for telehealth clients"
+table_results_sat_dep = 
+  gt(results_sat_dep) %>%
+  tab_header(title = title_results_sat_dep)%>%
+  cols_label(t_value = md("T-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Satisfaction.total.n = md("Satisfaction total n") , Major.depression.count = md("Major depression count"), No.major.depression.count = md("No major depression count"), raw_p_change = md("raw p change"), dep_mean = md("Depression mean"), no_dep_mean = md("No depression mean"), dep_sd = md("Depression sd"), no_dep_sd = md("No depression sd"), freq_cohen_d = md("Cohen D"))
+table_results_sat_dep
+
+gtsave(table_results_sat_dep, "table_results_sat_dep.png")
+
+
+
+
+
+```
+
+home_productive_dat = home_productive_dat%>% group_by(state)
+
+table_home_productive = 
+  gt(home_productive_dat) %>%
+  tab_header(title = title_home_productive)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from home.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
+table_home_productive
+gtsave(table_home_productive, "table_home_productive.png")
+
+
 #################
 Code from Github
 1. Grab code from master branch
@@ -405,7 +512,9 @@ bayes_p_change_deal = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gen
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_deal_sum = round(bayes_p_change_deal$stan_summary[,c(1,3,4,10)],4)
 ## To get percentage change interpretation need to exp the parameter estimates
-bayes_p_change_deal_sum = round(exp(bayes_p_change_deal_sum[1:4,]),3)
+options(scipen = 999)
+### Log postioer is werid, because you exp'ed it.
+bayes_p_change_deal_sum = round(exp(bayes_p_change_deal_sum),3)
 ### Creates a percentage instead 1 + % 
 bayes_p_change_deal_sum= bayes_p_change_deal_sum - 1
 bayes_p_change_deal_sum
@@ -422,6 +531,79 @@ write.csv(results_deal, "results_deal.csv", row.names = FALSE)
 results_deal
 
 ```
+Deal with diagnosis
+```{r}
+telehealth_noms_wide_noms_deal = telehealth_noms_wide_noms[c("telehealth.y", "HandlingDailyLife.x", "HandlingDailyLife.y", "ControlLife.x", "ControlLife.y", "DealWithCrisis.x", "DealWithCrisis.y", "GetsAlongWithFamily.x","GetsAlongWithFamily.y", "SocialSituations.x", "SocialSituations.y", "SchoolOrWork.x", "SchoolOrWork.y", "FunctioningHousing.x", "FunctioningHousing.y", "Symptoms.x","Symptoms.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")]
+apply(telehealth_noms_wide_noms_deal,2, function(x){describe.factor(x)})
+library(psych)
+
+### Plug in all the .x variables 
+omega_deal_base =  omega(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], poly = TRUE)
+### Plug in all the .y variables except telehealth.y 
+omega_deal_6month =  omega(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], poly = TRUE)
+omega_deal_6month
+
+### Plug in all the .x variables 
+vss(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], cor = "poly")
+fa(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], cor = "poly", correct = 0)
+
+### Plug in all the .y variables except telehealth.y 
+vss(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly", n = 3)
+fa(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], cor = "poly", correct = 0)
+
+
+
+### Plug in all .x variables
+telehealth_noms_wide_noms_deal$total_base = apply(telehealth_noms_wide_noms_deal[c(2,4,6,8,10,12,14,16)], 1, mean, na.rm = TRUE)
+### Plug in all .y expect for telehealth.y
+telehealth_noms_wide_noms_deal$total_month6 = apply(telehealth_noms_wide_noms_deal[c(3,5,7,9,11,13,15,17)], 1, mean, na.rm = TRUE)
+hist(telehealth_noms_wide_noms_deal$total_base)
+hist(telehealth_noms_wide_noms_deal$total_month6)
+
+## No data for difference scores so try just 6months
+range(telehealth_noms_wide_noms_deal$total_month6, na.rm = TRUE)
+dim(telehealth_noms_wide_noms_deal)
+head(telehealth_noms_wide_noms_deal)
+telehealth_noms_wide_noms_deal
+telehealth_noms_wide_noms_deal_month6_complete = na.omit(telehealth_noms_wide_noms_deal[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y","dep", "bipolar")])
+dim(telehealth_noms_wide_noms_deal_month6_complete)
+telehealth_noms_wide_noms_deal_month6_complete
+telehealth_noms_wide_noms_deal_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_deal_month6_complete$telehealth.y == 1,0,1)
+
+
+
+library(rstanarm)
+library(descr)
+### Scale is .2 which means 20% difference in each direction
+my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
+describe.factor(telehealth_noms_wide_noms_deal_month6_complete$telehealth.y)
+n_total = dim(telehealth_noms_wide_noms_deal_month6_complete)[1]
+
+bayes_p_change_deal = stan_glm(log(total_month6)~ face_to_face*dep +  face_to_face*bipolar+ Agegroup.y+ Gender.y+ RaceWhite.y, prior = my_prior, data = telehealth_noms_wide_noms_deal_month6_complete, seed = 123)
+check_collinearity(bayes_p_change_deal)
+#launch_shinystan(bayes_p_change_deal)
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat$stan_summary if you are unsure
+bayes_p_change_deal_sum = round(bayes_p_change_deal$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_deal_sum = round(exp(bayes_p_change_deal_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_deal_sum= bayes_p_change_deal_sum - 1
+bayes_p_change_deal_sum
+### Grabing the means, sds, and n's for each group
+mean_sd_deal= round(compmeans(telehealth_noms_wide_noms_deal_month6_complete$total_month6, telehealth_noms_wide_noms_deal_month6_complete$telehealth.y),2)
+mean_sd_deal
+### Get freq cohen's D, because I don't know how to get bayes cohen's D
+month_6_deal_d =  psych::cohen.d(telehealth_noms_wide_noms_deal_month6_complete$total_month6, group = telehealth_noms_wide_noms_deal_month6_complete$face_to_face)
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat to whatever you are measuring results_(fill in name)
+results_deal_diag = data.frame(par_estimate = bayes_p_change_deal_sum[2,1], sd_p_change =  bayes_p_change_deal_sum[2,2], ci_95 = paste0(bayes_p_change_deal_sum[2,3], ",", bayes_p_change_deal_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_deal[1,2], n_post_telehealth = mean_sd_deal[2,2], raw_p_change = round((mean_sd_deal[2,1] -  mean_sd_deal[1,1]) /  mean_sd_deal[1,1],3), telehealth_mean =  mean_sd_deal[2,1], face_to_face_mean =  mean_sd_deal[1,1], telehealth_sd= mean_sd_deal[2,3], face_to_face_sd= mean_sd_deal[1,3],freq_cohen_d = round(month_6_deal_d$cohen.d[2],3))
+
+write.csv(results_deal_diag, "results_deal_diag.csv", row.names = FALSE)
+results_deal_diag
+```
+
+
 
 ####Jess
 ####################################################
@@ -493,7 +675,7 @@ bayes_p_change_feel = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gen
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_feel_sum = round(bayes_p_change_feel$stan_summary[,c(1,3,4,10)],4)
 ## To get percentage change interpretation need to exp the parameter estimates
-bayes_p_change_feel_sum = round(exp(bayes_p_change_feel_sum[1:4,]),3)
+bayes_p_change_feel_sum = round(exp(bayes_p_change_feel_sum),3)
 ### Creates a percentage instead 1 + % 
 bayes_p_change_feel_sum= bayes_p_change_feel_sum - 1
 bayes_p_change_feel_sum
@@ -508,6 +690,74 @@ results_feel = data.frame(par_estimate = bayes_p_change_feel_sum[2,1], sd_p_chan
 
 write.csv(results_feel, "results_feel.csv", row.names = FALSE)
 results_feel
+```
+Feeling last 30 days with diagnosis
+```{r}
+telehealth_noms_wide_noms_feel = telehealth_noms_wide_noms[c("telehealth.y", "Nervous.y", "Hopeless.y", "Restless.y", "Depressed.y", "EverythingEffort.y", "Worthless.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")]
+apply(telehealth_noms_wide_noms_feel,2, function(x){describe.factor(x)})
+library(psych)
+
+telehealth_noms_wide_noms_feel[c(2:7)] = telehealth_noms_wide_noms_feel[c(2:7)]+1
+apply(telehealth_noms_wide_noms_feel,2, function(x){describe.factor(x)})
+### Plug in all the .y variables except telehealth.y 
+omega_feel_6month =  omega(telehealth_noms_wide_noms_feel[c(2:7)], poly = TRUE)
+omega_feel_6month
+
+### Plug in all the .y variables except telehealth.y 
+vss(telehealth_noms_wide_noms_feel[c(2:7)], cor = "poly", n = 3)
+fa(telehealth_noms_wide_noms_feel[c(2:7)], cor = "poly", correct = 0)
+
+
+
+### Plug in all .y expect for telehealth.y
+telehealth_noms_wide_noms_feel$total_month6 = apply(telehealth_noms_wide_noms_feel[c(2:7)], 1, mean, na.rm = TRUE)
+hist(log(telehealth_noms_wide_noms_feel$total_month6))
+
+## No data for difference scores so try just 6months
+range(telehealth_noms_wide_noms_feel$total_month6, na.rm = TRUE)
+dim(telehealth_noms_wide_noms_feel)
+head(telehealth_noms_wide_noms_feel)
+telehealth_noms_wide_noms_feel
+telehealth_noms_wide_noms_feel_month6_complete = na.omit(telehealth_noms_wide_noms_feel[c("total_month6", "telehealth.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")])
+
+#Scale is changed to add one so I can take the log!!!!!!!!! Need to change after NA
+
+
+dim(telehealth_noms_wide_noms_feel_month6_complete)
+telehealth_noms_wide_noms_feel_month6_complete
+telehealth_noms_wide_noms_feel_month6_complete$face_to_face = ifelse(telehealth_noms_wide_noms_feel_month6_complete$telehealth.y == 1,0,1)
+
+library(rstanarm)
+library(descr)
+### Scale is .2 which means 20% difference in each direction
+my_prior = normal(location = 0, scale = .2, autoscale = FALSE)
+describe.factor(telehealth_noms_wide_noms_feel_month6_complete$telehealth.y)
+n_total = dim(telehealth_noms_wide_noms_feel_month6_complete)[1]
+telehealth_noms_wide_noms_feel_month6_complete
+apply(telehealth_noms_wide_noms_feel_month6_complete, 2, function(x){describe.factor(x)})
+
+bayes_p_change_feel = stan_glm(log(total_month6)~ face_to_face*dep + face_to_face*bipolar + Agegroup.y+ Gender.y+ RaceWhite.y, prior = my_prior, data = telehealth_noms_wide_noms_feel_month6_complete, seed = 123)
+check_collinearity(bayes_p_change_feel)
+#launch_shinystan(bayes_p_change_feel)
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat$stan_summary if you are unsure
+bayes_p_change_feel_sum = round(bayes_p_change_feel$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_feel_sum = round(exp(bayes_p_change_feel_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_feel_sum= bayes_p_change_feel_sum - 1
+bayes_p_change_feel_sum
+### Grabing the means, sds, and n's for each group
+mean_sd_feel= round(compmeans(telehealth_noms_wide_noms_feel_month6_complete$total_month6, telehealth_noms_wide_noms_feel_month6_complete$telehealth.y),2)
+mean_sd_feel
+### Get freq cohen's D, because I don't know how to get bayes cohen's D
+month_6_feel_d =  psych::cohen.d(telehealth_noms_wide_noms_feel_month6_complete$total_month6, group = telehealth_noms_wide_noms_feel_month6_complete$face_to_face)
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat to whatever you are measuring results_(fill in name)
+results_feel_diag = data.frame(par_estimate = bayes_p_change_feel_sum[2,1], sd_p_change =  bayes_p_change_feel_sum[2,2], ci_95 = paste0(bayes_p_change_feel_sum[2,3], ",", bayes_p_change_feel_sum[2,4]), n_total = n_total, n_pre_telehealth = mean_sd_feel[1,2], n_post_telehealth = mean_sd_feel[2,2], raw_p_change = round((mean_sd_feel[2,1] -  mean_sd_feel[1,1]) /  mean_sd_feel[1,1],3), telehealth_mean =  mean_sd_feel[2,1], face_to_face_mean =  mean_sd_feel[1,1], telehealth_sd= mean_sd_feel[2,3], face_to_face_sd= mean_sd_feel[1,3],freq_cohen_d = round(month_6_feel_d$cohen.d[2],3))
+
+write.csv(results_feel_diag, "results_feel_diag.csv", row.names = FALSE)
+results_feel_diag
 ```
 
 
@@ -618,6 +868,94 @@ exp(.2)
 
 
 ```
+Alcohol and tobacoo diagnosis
+```{r}
+### All items should be 1 to 5
+### Not enough for drugs
+telehealth_alc_tob = telehealth_noms_wide_noms[c("telehealth.y", "Tobacco_Use.x", "Tobacco_Use.y", "Alcohol_Use.x", "Alcohol_Use.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")]
+apply(telehealth_alc_tob,2, function(x){describe.factor(x)})
+library(psych)
+### Only two items not needed.
+### Plug in all the .x variables 
+#omega_sat_base =  omega(telehealth_noms_wide_noms_sat[c(2,4,6,8)], poly = TRUE)
+### Plug in all the .y variables except telehealth.y 
+#omega_sat_6month =  omega(telehealth_noms_wide_noms_sat[c(3,5,7,9)], poly = TRUE)
+#omega_sat_6month
+
+### Plug in all the .x variables 
+#vss(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly")
+#fa(telehealth_noms_wide_noms_sat[c(2,4,6,8)], cor = "poly", correct = 0)
+
+### Plug in all the .y variables except telehealth.y 
+#vss(telehealth_noms_wide_noms_sat[c(3,5,7,9)], cor = "poly")
+#fa(telehealth_noms_wide_noms_sat[c(3,5,7,9)], cor = "poly", correct = 0)
+
+########### 
+# Create total scores and use sum so you can get counts 
+### Plug in all .x variables
+telehealth_alc_tob$total_base = apply(telehealth_alc_tob[c(2,4)], 1, mean, na.rm = TRUE)
+### Plug in all .y expect for telehealth.y
+telehealth_alc_tob$total_month6 = apply(telehealth_alc_tob[c(3,5)], 1, mean, na.rm = TRUE)
+hist(log(telehealth_alc_tob$total_month6))
+
+### Make binary anything greater than 1 means you used alcohol or tobacco 
+describe.factor(telehealth_alc_tob$total_month6)
+hist(telehealth_alc_tob$total_month6)
+compmeans(telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
+describeBy (telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
+
+
+telehealth_alc_tob$total_month6 = ifelse(telehealth_alc_tob$total_month6 == 1, 1,0)
+
+## No data for difference scores so try just 6months
+range(telehealth_alc_tob$total_month6, na.rm = TRUE)
+dim(telehealth_alc_tob)
+head(telehealth_alc_tob)
+telehealth_alc_tob
+telehealth_alc_tob_complete = na.omit(telehealth_alc_tob[c("total_month6", "telehealth.y","Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")])
+dim(telehealth_alc_tob_complete)
+telehealth_alc_tob_complete
+describe.factor(telehealth_alc_tob_complete$telehealth.y)
+
+############ Run posisson regression
+library(rstanarm)
+library(descr)
+### Scale is exp(.2) which means 20% difference in each direction
+
+
+my_prior = normal(location = 0, scale = exp(.2), autoscale = FALSE)
+my_prior = student_t(4,0,.2)
+describe.factor(telehealth_alc_tob_complete$telehealth.y)
+n_total = dim(telehealth_alc_tob_complete)[1]
+## Take log of outcome to get percentage change interpretation
+
+telehealth_alc_tob_complete$face_to_face = ifelse(telehealth_alc_tob_complete$telehealth.y == 1, 0,1)
+bayes_p_change_al_tob = stan_glm(total_month6~ face_to_face*dep + face_to_face*bipolar + Agegroup.y + Gender.y + RaceWhite.y, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
+bayes_p_change_al_tob
+### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
+## check bayes_p_change_sat$stan_summary if you are unsure
+bayes_p_change_al_tob_sum = round(bayes_p_change_al_tob$stan_summary[,c(1,3,4,10)],4)
+## To get percentage change interpretation need to exp the parameter estimates
+bayes_p_change_al_tob_sum = round(exp(bayes_p_change_al_tob_sum),3)
+### Creates a percentage instead 1 + % 
+bayes_p_change_al_tob_sum= bayes_p_change_al_tob_sum - 1
+bayes_p_change_al_tob_sum
+
+### Need mean sd change here
+telehealth_alc_tob_complete
+
+mean_sd_alc_tob= round(compmeans(telehealth_alc_tob_complete$total_month6, telehealth_alc_tob_complete$telehealth.y),2)
+### Put together the results.  Should not need to change this.  See example telehealth_noms_sat_results in TDrive CRI_Research/telehealth_evaluation/data_codebooks/results
+## Change results from results_sat to whatever you are measuring results_(fill in name)
+
+results_alc_tob_diag = data.frame(odds_change_alc_tob = bayes_p_change_al_tob_sum[2,1], sd_odds_change =  bayes_p_change_al_tob_sum[2,2], ci_95 = paste0(bayes_p_change_al_tob_sum[2,3], ",", bayes_p_change_al_tob_sum[2,4]), n_total = mean_sd_sat[3,2], n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], raw_p_change = round((mean_sd_alc_tob[2,1]-mean_sd_alc_tob[1,1])/mean_sd_alc_tob[2,1],2), p_post = mean_sd_alc_tob[2,1], p_pre = mean_sd_alc_tob[1,1])
+
+write.csv(results_alc_tob, "results_alc_tob.csv", row.names = FALSE)
+results_alc_tob
+prior_summary(bayes_p_change_al_tob)
+exp(.2)
+```
+
 
 Not doing this no 6-month data
 
