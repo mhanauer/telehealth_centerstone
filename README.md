@@ -405,9 +405,9 @@ sat_dep_d = psych::cohen.d(sat_diag_tele_only_dat$total_month6, group = sat_diag
 
 
 results_sat_dep = data.frame(dep_sat, n_total = n_sat_dat, n_dep_sat[2], n_dep_sat[1], raw_p_change = round((sat_dep_means[2,1] -  sat_dep_means[1,1]) /  sat_dep_means[1,1],3), dep_mean =  sat_dep_means[2,1], no_dep_mean =  sat_dep_means[1,1], dep_sd= sat_dep_means[2,3], no_dep_sd= sat_dep_means[1,3],freq_cohen_d = round(sat_dep_d$cohen.d[2],3))
-results_sat_dep = round(results_sat_dep, 3)
+results_sat_dep = round(results_sat_dep, 2)
 library(gt)
-title_results_sat_dep = "T-test results for satisfaction with outcomes at 6-months for telehealth clients"
+title_results_sat_dep = "T-test results for satisfaction with outcomes at 6-months for telehealth clients with major depression"
 table_results_sat_dep = 
   gt(results_sat_dep) %>%
   tab_header(title = title_results_sat_dep)%>%
@@ -415,23 +415,49 @@ table_results_sat_dep =
 table_results_sat_dep
 
 gtsave(table_results_sat_dep, "table_results_sat_dep.png")
+#############################################################################################################################
+### Bipolar now
+sat_diag_tele_only_dat = subset(telehealth_noms_wide_noms_sat_month6_complete, telehealth.y == 1)
+hist(sat_diag_tele_only_dat$total_month6)
+qqnorm(sat_diag_tele_only_dat$total_month6)
+compmeans(sat_diag_tele_only_dat$total_month6, sat_diag_tele_only_dat$bipolar)
+
+### recode bipolar so it compares bipolar first relative to not bipolarressed
+sat_diag_tele_only_dat$bipolar_recode = ifelse(sat_diag_tele_only_dat$bipolar == 1, 0,1)
+bipolar_sat = t.test(sat_diag_tele_only_dat$total_month6 ~ sat_diag_tele_only_dat$bipolar_recode)
+bipolar_sat = data.frame(t_value = bipolar_sat$statistic, p_value = bipolar_sat$p.value, lower = bipolar_sat$conf.int[1], upper = bipolar_sat$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(sat_diag_tele_only_dat$total_month6 ~ sat_diag_tele_only_dat$bipolar_recode)
+
+n_bipolar_sat =describe.factor(sat_diag_tele_only_dat$bipolar)
+n_bipolar_sat = data.frame(n_bipolar_sat)
+n_bipolar_sat = n_bipolar_sat[1,]
+n_bipolar_sat = data.frame(n_bipolar_sat)
+colnames(n_bipolar_sat) = n_bipolar_sat
+colnames(n_bipolar_sat) = c("No bipolar count", "Bipolar count")
+n_sat_dat = data.frame(dim(sat_diag_tele_only_dat)[1])
+colnames(n_sat_dat) = "Satisfaction total n"
+
+sat_bipolar_means = compmeans(sat_diag_tele_only_dat$total_month6, sat_diag_tele_only_dat$bipolar)
+
+sat_bipolar_d = psych::cohen.d(sat_diag_tele_only_dat$total_month6, group = sat_diag_tele_only_dat$bipolar)
 
 
+results_sat_bipolar = data.frame(bipolar_sat, n_total = n_sat_dat, n_bipolar_sat[2], n_bipolar_sat[1], raw_p_change = round((sat_bipolar_means[2,1] -  sat_bipolar_means[1,1]) /  sat_bipolar_means[1,1],3), bipolar_mean =  sat_bipolar_means[2,1], no_bipolar_mean =  sat_bipolar_means[1,1], bipolar_sd= sat_bipolar_means[2,3], no_bipolar_sd= sat_bipolar_means[1,3],freq_cohen_d = round(sat_bipolar_d$cohen.d[2],3))
+results_sat_bipolar = round(results_sat_bipolar, 2)
+library(gt)
+title_results_sat_bipolar = "T-test results for satisfaction with outcomes at 6-months for telehealth clients with primary diagnosis as bipolar"
+table_results_sat_bipolar = 
+  gt(results_sat_bipolar) %>%
+  tab_header(title = title_results_sat_bipolar)%>%
+  cols_label(t_value = md("T-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Satisfaction.total.n = md("Satisfaction total n") , Bipolar.count = md("Bipolar count"), No.bipolar.count = md("No bipolar count"), raw_p_change = md("raw p change"), bipolar_mean = md("Bipolar mean"), no_bipolar_mean = md("No bipolar mean"), bipolar_sd = md("Bipolar sd"), no_bipolar_sd = md("No bipolar sd"), freq_cohen_d = md("Cohen D"))
+table_results_sat_bipolar
+
+gtsave(table_results_sat_bipolar, "table_results_sat_bipolar.png")
 
 
 
 ```
-
-home_productive_dat = home_productive_dat%>% group_by(state)
-
-table_home_productive = 
-  gt(home_productive_dat) %>%
-  tab_header(title = title_home_productive)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from home.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_home_productive
-gtsave(table_home_productive, "table_home_productive.png")
-
 
 #################
 Code from Github
@@ -602,6 +628,88 @@ results_deal_diag = data.frame(par_estimate = bayes_p_change_deal_sum[2,1], sd_p
 write.csv(results_deal_diag, "results_deal_diag.csv", row.names = FALSE)
 results_deal_diag
 ```
+Manage mental health with diagnosis with t.test for just telehealth
+```{r}
+deal_diag_tele_only_dat = subset(telehealth_noms_wide_noms_deal_month6_complete, telehealth.y == 1)
+hist(deal_diag_tele_only_dat$total_month6)
+qqnorm(deal_diag_tele_only_dat$total_month6)
+compmeans(deal_diag_tele_only_dat$total_month6, deal_diag_tele_only_dat$dep)
+
+### recode dep so it compares dep first relative to not depressed
+deal_diag_tele_only_dat$dep_recode = ifelse(deal_diag_tele_only_dat$dep == 1, 0,1)
+dep_deal = t.test(deal_diag_tele_only_dat$total_month6 ~ deal_diag_tele_only_dat$dep_recode)
+dep_deal = data.frame(t_value = dep_deal$statistic, p_value = dep_deal$p.value, lower = dep_deal$conf.int[1], upper = dep_deal$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(deal_diag_tele_only_dat$total_month6 ~ deal_diag_tele_only_dat$dep_recode)
+
+n_dep_deal =describe.factor(deal_diag_tele_only_dat$dep)
+n_dep_deal = data.frame(n_dep_deal)
+n_dep_deal = n_dep_deal[1,]
+n_dep_deal = data.frame(n_dep_deal)
+colnames(n_dep_deal) = n_dep_deal
+colnames(n_dep_deal) = c("No major depression count", "Major depression count")
+n_deal_dat = data.frame(dim(deal_diag_tele_only_dat)[1])
+colnames(n_deal_dat) = "Manage mental health total n"
+
+deal_dep_means = compmeans(deal_diag_tele_only_dat$total_month6, deal_diag_tele_only_dat$dep)
+
+deal_dep_d = psych::cohen.d(deal_diag_tele_only_dat$total_month6, group = deal_diag_tele_only_dat$dep)
+
+
+results_deal_dep = data.frame(dep_deal, n_total = n_deal_dat, n_dep_deal[2], n_dep_deal[1], raw_p_change = round((deal_dep_means[2,1] -  deal_dep_means[1,1]) /  deal_dep_means[1,1],3), dep_mean =  deal_dep_means[2,1], no_dep_mean =  deal_dep_means[1,1], dep_sd= deal_dep_means[2,3], no_dep_sd= deal_dep_means[1,3],freq_cohen_d = round(deal_dep_d$cohen.d[2],3))
+results_deal_dep = round(results_deal_dep, 2)
+library(gt)
+title_results_deal_dep = "T-test results for managing mental health at 6-months for telehealth clients with major depression"
+table_results_deal_dep = 
+  gt(results_deal_dep) %>%
+  tab_header(title = title_results_deal_dep)%>%
+  cols_label(t_value = md("T-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Satisfaction.total.n = md("Satisfaction total n") , Major.depression.count = md("Major depression count"), No.major.depression.count = md("No major depression count"), raw_p_change = md("raw p change"), dep_mean = md("Depression mean"), no_dep_mean = md("No depression mean"), dep_sd = md("Depression sd"), no_dep_sd = md("No depression sd"), freq_cohen_d = md("Cohen D"))
+table_results_deal_dep
+
+gtsave(table_results_deal_dep, "table_results_deal_dep.png")
+#############################################################################################################################
+### Bipolar now
+deal_diag_tele_only_dat = subset(telehealth_noms_wide_noms_deal_month6_complete, telehealth.y == 1)
+hist(deal_diag_tele_only_dat$total_month6)
+qqnorm(deal_diag_tele_only_dat$total_month6)
+compmeans(deal_diag_tele_only_dat$total_month6, deal_diag_tele_only_dat$bipolar)
+
+### recode bipolar so it compares bipolar first relative to not bipolarressed
+deal_diag_tele_only_dat$bipolar_recode = ifelse(deal_diag_tele_only_dat$bipolar == 1, 0,1)
+bipolar_deal = t.test(deal_diag_tele_only_dat$total_month6 ~ deal_diag_tele_only_dat$bipolar_recode)
+bipolar_deal = data.frame(t_value = bipolar_deal$statistic, p_value = bipolar_deal$p.value, lower = bipolar_deal$conf.int[1], upper = bipolar_deal$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(deal_diag_tele_only_dat$total_month6 ~ deal_diag_tele_only_dat$bipolar_recode)
+
+n_bipolar_deal =describe.factor(deal_diag_tele_only_dat$bipolar)
+n_bipolar_deal = data.frame(n_bipolar_deal)
+n_bipolar_deal = n_bipolar_deal[1,]
+n_bipolar_deal = data.frame(n_bipolar_deal)
+colnames(n_bipolar_deal) = n_bipolar_deal
+colnames(n_bipolar_deal) = c("No bipolar count", "Bipolar count")
+n_deal_dat = data.frame(dim(deal_diag_tele_only_dat)[1])
+colnames(n_deal_dat) = "Manage mental health total n"
+
+deal_bipolar_means = compmeans(deal_diag_tele_only_dat$total_month6, deal_diag_tele_only_dat$bipolar)
+
+deal_bipolar_d = psych::cohen.d(deal_diag_tele_only_dat$total_month6, group = deal_diag_tele_only_dat$bipolar)
+
+
+results_deal_bipolar = data.frame(bipolar_deal, n_total = n_deal_dat, n_bipolar_deal[2], n_bipolar_deal[1], raw_p_change = round((deal_bipolar_means[2,1] -  deal_bipolar_means[1,1]) /  deal_bipolar_means[1,1],3), bipolar_mean =  deal_bipolar_means[2,1], no_bipolar_mean =  deal_bipolar_means[1,1], bipolar_sd= deal_bipolar_means[2,3], no_bipolar_sd= deal_bipolar_means[1,3],freq_cohen_d = round(deal_bipolar_d$cohen.d[2],3))
+results_deal_bipolar = round(results_deal_bipolar, 2)
+library(gt)
+title_results_deal_bipolar = "T-test results for managing mental health at 6-months for telehealth clients with primary diagnosis as bipolar"
+table_results_deal_bipolar = 
+  gt(results_deal_bipolar) %>%
+  tab_header(title = title_results_deal_bipolar)%>%
+  cols_label(t_value = md("T-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Satisfaction.total.n = md("Satisfaction total n") , Bipolar.count = md("Bipolar count"), No.bipolar.count = md("No bipolar count"), raw_p_change = md("raw p change"), bipolar_mean = md("Bipolar mean"), no_bipolar_mean = md("No bipolar mean"), bipolar_sd = md("Bipolar sd"), no_bipolar_sd = md("No bipolar sd"), freq_cohen_d = md("Cohen D"))
+table_results_deal_bipolar
+
+gtsave(table_results_deal_bipolar, "table_results_deal_bipolar.png")
+
+
+
+```
 
 
 
@@ -759,7 +867,90 @@ results_feel_diag = data.frame(par_estimate = bayes_p_change_feel_sum[2,1], sd_p
 write.csv(results_feel_diag, "results_feel_diag.csv", row.names = FALSE)
 results_feel_diag
 ```
+Manage last 30 days with diagnosis with t.test for just telehealth
+### Redo with wilcox test
+```{r}
+feel_diag_tele_only_dat = subset(telehealth_noms_wide_noms_feel_month6_complete, telehealth.y == 1)
+hist(feel_diag_tele_only_dat$total_month6)
+qqnorm(feel_diag_tele_only_dat$total_month6)
+compmeans(feel_diag_tele_only_dat$total_month6, feel_diag_tele_only_dat$dep)
 
+### recode dep so it compares dep first relative to not depressed
+feel_diag_tele_only_dat$dep_recode = ifelse(feel_diag_tele_only_dat$dep == 1, 0,1)
+dep_feel = wilcox.test(feel_diag_tele_only_dat$total_month6 ~ feel_diag_tele_only_dat$dep_recode, conf.int = TRUE)
+
+dep_feel = data.frame(t_value = dep_feel$statistic, p_value = dep_feel$p.value, lower = dep_feel$conf.int[1], upper = dep_feel$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(feel_diag_tele_only_dat$total_month6 ~ feel_diag_tele_only_dat$dep_recode)
+
+n_dep_feel =describe.factor(feel_diag_tele_only_dat$dep)
+n_dep_feel = data.frame(n_dep_feel)
+n_dep_feel = n_dep_feel[1,]
+n_dep_feel = data.frame(n_dep_feel)
+colnames(n_dep_feel) = n_dep_feel
+colnames(n_dep_feel) = c("No major depression count", "Major depression count")
+n_feel_dat = data.frame(dim(feel_diag_tele_only_dat)[1])
+colnames(n_feel_dat) = "Mental health 30 days total n"
+
+feel_dep_means = compmeans(feel_diag_tele_only_dat$total_month6, feel_diag_tele_only_dat$dep)
+
+feel_dep_d = psych::cohen.d(feel_diag_tele_only_dat$total_month6, group = feel_diag_tele_only_dat$dep)
+
+
+results_feel_dep = data.frame(dep_feel, n_total = n_feel_dat, n_dep_feel[2], n_dep_feel[1], raw_p_change = round((feel_dep_means[2,1] -  feel_dep_means[1,1]) /  feel_dep_means[1,1],3), dep_mean =  feel_dep_means[2,1], no_dep_mean =  feel_dep_means[1,1], dep_sd= feel_dep_means[2,3], no_dep_sd= feel_dep_means[1,3])
+results_feel_dep = round(results_feel_dep, 2)
+library(gt)
+title_results_feel_dep = "Wilcox test results for mental health in last 30 days at 6-months for telehealth clients with major depression"
+table_results_feel_dep = 
+  gt(results_feel_dep) %>%
+  tab_header(title = title_results_feel_dep)%>%
+  cols_label(t_value = md("W-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Mental.health.30.days.total.n = md("Mental health 30 days total n") , Major.depression.count = md("Major depression count"), No.major.depression.count = md("No major depression count"), raw_p_change = md("raw p change"), dep_mean = md("Depression mean"), no_dep_mean = md("No depression mean"), dep_sd = md("Depression sd"), no_dep_sd = md("No depression sd"))
+table_results_feel_dep
+
+gtsave(table_results_feel_dep, "table_results_feel_dep.png")
+#############################################################################################################################
+### Bipolar now
+feel_diag_tele_only_dat = subset(telehealth_noms_wide_noms_feel_month6_complete, telehealth.y == 1)
+hist(feel_diag_tele_only_dat$total_month6)
+qqnorm(feel_diag_tele_only_dat$total_month6)
+compmeans(feel_diag_tele_only_dat$total_month6, feel_diag_tele_only_dat$bipolar)
+
+### recode bipolar so it compares bipolar first relative to not bipolarressed
+feel_diag_tele_only_dat$bipolar_recode = ifelse(feel_diag_tele_only_dat$bipolar == 1, 0,1)
+bipolar_feel = wilcox.test(feel_diag_tele_only_dat$total_month6 ~ feel_diag_tele_only_dat$bipolar_recode, conf.int = TRUE)
+bipolar_feel = data.frame(t_value = bipolar_feel$statistic, p_value = bipolar_feel$p.value, lower = bipolar_feel$conf.int[1], upper = bipolar_feel$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(feel_diag_tele_only_dat$total_month6 ~ feel_diag_tele_only_dat$bipolar_recode)
+
+n_bipolar_feel =describe.factor(feel_diag_tele_only_dat$bipolar)
+n_bipolar_feel = data.frame(n_bipolar_feel)
+n_bipolar_feel = n_bipolar_feel[1,]
+n_bipolar_feel = data.frame(n_bipolar_feel)
+colnames(n_bipolar_feel) = n_bipolar_feel
+colnames(n_bipolar_feel) = c("No bipolar count", "Bipolar count")
+n_feel_dat = data.frame(dim(feel_diag_tele_only_dat)[1])
+colnames(n_feel_dat) = "Mental health 30 days total n"
+
+feel_bipolar_means = compmeans(feel_diag_tele_only_dat$total_month6, feel_diag_tele_only_dat$bipolar)
+
+feel_bipolar_d = psych::cohen.d(feel_diag_tele_only_dat$total_month6, group = feel_diag_tele_only_dat$bipolar)
+
+
+results_feel_bipolar = data.frame(bipolar_feel, n_total = n_feel_dat, n_bipolar_feel[2], n_bipolar_feel[1], raw_p_change = round((feel_bipolar_means[2,1] -  feel_bipolar_means[1,1]) /  feel_bipolar_means[1,1],3), bipolar_mean =  feel_bipolar_means[2,1], no_bipolar_mean =  feel_bipolar_means[1,1], bipolar_sd= feel_bipolar_means[2,3], no_bipolar_sd= feel_bipolar_means[1,3],freq_cohen_d = round(feel_bipolar_d$cohen.d[2],3))
+results_feel_bipolar = round(results_feel_bipolar, 2)
+library(gt)
+title_results_feel_bipolar = "Wilcox test results for mental health in last 30 days at 6-months for telehealth clients with primary diagnosis as bipolar"
+table_results_feel_bipolar = 
+  gt(results_feel_bipolar) %>%
+  tab_header(title = title_results_feel_bipolar)%>%
+  cols_label(t_value = md("W-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Mental.health.30.days.total.n = md("Mental health 30 days total n") , Bipolar.count = md("Bipolar count"), No.bipolar.count = md("No bipolar count"), raw_p_change = md("raw p change"), bipolar_mean = md("Bipolar mean"), no_bipolar_mean = md("No bipolar mean"), bipolar_sd = md("Bipolar sd"), no_bipolar_sd = md("No bipolar sd"), freq_cohen_d = md("Cohen D"))
+table_results_feel_bipolar
+
+gtsave(table_results_feel_bipolar, "table_results_feel_bipolar.png")
+
+
+
+```
 
 #######################
 
@@ -813,7 +1004,7 @@ hist(log(telehealth_alc_tob$total_month6))
 describe.factor(telehealth_alc_tob$total_month6)
 hist(telehealth_alc_tob$total_month6)
 compmeans(telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
-describeBy (telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
+describeBy(telehealth_alc_tob$total_month6, telehealth_alc_tob$telehealth.y)
 
 
 telehealth_alc_tob$total_month6 = ifelse(telehealth_alc_tob$total_month6 == 1, 1,0)
@@ -955,7 +1146,101 @@ results_alc_tob
 prior_summary(bayes_p_change_al_tob)
 exp(.2)
 ```
+Alcohol and tobacco with diagnosis with t.test for just telehealth
+### Redo with wilcox test
+```{r}
+#### Get full outcome don't need to dicotmize
+telehealth_alc_tob = telehealth_noms_wide_noms[c("telehealth.y", "Tobacco_Use.x", "Tobacco_Use.y", "Alcohol_Use.x", "Alcohol_Use.y", "Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")]
+apply(telehealth_alc_tob,2, function(x){describe.factor(x)})
+library(psych)
 
+telehealth_alc_tob$total_month6 = apply(telehealth_alc_tob[c(3,5)], 1, mean, na.rm = TRUE)
+hist(telehealth_alc_tob$total_month6)
+telehealth_alc_tob_complete = na.omit(telehealth_alc_tob[c("total_month6", "telehealth.y","Agegroup.y", "Gender.y", "RaceWhite.y", "dep", "bipolar")])
+
+alc_tob_diag_tele_only_dat = subset(telehealth_alc_tob_complete, telehealth.y == 1)
+hist(alc_tob_diag_tele_only_dat$total_month6)
+qqnorm(alc_tob_diag_tele_only_dat$total_month6)
+compmeans(alc_tob_diag_tele_only_dat$total_month6, alc_tob_diag_tele_only_dat$dep)
+
+### recode dep so it compares dep first relative to not depressed
+alc_tob_diag_tele_only_dat$dep_recode = ifelse(alc_tob_diag_tele_only_dat$dep == 1, 0,1)
+dep_alc_tob = wilcox.test(alc_tob_diag_tele_only_dat$total_month6 ~ alc_tob_diag_tele_only_dat$dep_recode, conf.int = TRUE)
+
+dep_alc_tob = data.frame(t_value = dep_alc_tob$statistic, p_value = dep_alc_tob$p.value, lower = dep_alc_tob$conf.int[1], upper = dep_alc_tob$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(alc_tob_diag_tele_only_dat$total_month6 ~ alc_tob_diag_tele_only_dat$dep_recode)
+
+n_dep_alc_tob =describe.factor(alc_tob_diag_tele_only_dat$dep)
+n_dep_alc_tob = data.frame(n_dep_alc_tob)
+n_dep_alc_tob = n_dep_alc_tob[1,]
+n_dep_alc_tob = data.frame(n_dep_alc_tob)
+colnames(n_dep_alc_tob) = n_dep_alc_tob
+colnames(n_dep_alc_tob) = c("No major depression count", "Major depression count")
+n_alc_tob_dat = data.frame(dim(alc_tob_diag_tele_only_dat)[1])
+colnames(n_alc_tob_dat) = "Alcohol or tobacco use total n"
+
+alc_tob_dep_means = compmeans(alc_tob_diag_tele_only_dat$total_month6, alc_tob_diag_tele_only_dat$dep)
+
+alc_tob_dep_d = psych::cohen.d(alc_tob_diag_tele_only_dat$total_month6, group = alc_tob_diag_tele_only_dat$dep)
+
+
+results_alc_tob_dep = data.frame(dep_alc_tob, n_total = n_alc_tob_dat, n_dep_alc_tob[2], n_dep_alc_tob[1], raw_p_change = round((alc_tob_dep_means[2,1] -  alc_tob_dep_means[1,1]) /  alc_tob_dep_means[1,1],3), dep_mean =  alc_tob_dep_means[2,1], no_dep_mean =  alc_tob_dep_means[1,1], dep_sd= alc_tob_dep_means[2,3], no_dep_sd= alc_tob_dep_means[1,3])
+results_alc_tob_dep = round(results_alc_tob_dep, 2)
+library(gt)
+title_results_alc_tob_dep = "Wilcox test results for alcohol or tobacco last 30 days at 6-months for telehealth clients with major depression"
+table_results_alc_tob_dep = 
+  gt(results_alc_tob_dep) %>%
+  tab_header(title = title_results_alc_tob_dep)%>%
+  cols_label(t_value = md("W-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Alcohol.or.tobacco.use.total.n
+ = md("Alcohol or tobacco total n") , Major.depression.count = md("Major depression count"), No.major.depression.count = md("No major depression count"), raw_p_change = md("raw p change"), dep_mean = md("Depression mean"), no_dep_mean = md("No depression mean"), dep_sd = md("Depression sd"), no_dep_sd = md("No depression sd"))
+table_results_alc_tob_dep
+
+gtsave(table_results_alc_tob_dep, "table_results_alc_tob_dep.png")
+#############################################################################################################################
+### Bipolar now
+alc_tob_diag_tele_only_dat = subset(telehealth_alc_tob, telehealth.y == 1)
+hist(alc_tob_diag_tele_only_dat$total_month6)
+qqnorm(alc_tob_diag_tele_only_dat$total_month6)
+compmeans(alc_tob_diag_tele_only_dat$total_month6, alc_tob_diag_tele_only_dat$bipolar)
+
+### recode bipolar so it compares bipolar first relative to not bipolarressed
+alc_tob_diag_tele_only_dat$bipolar_recode = ifelse(alc_tob_diag_tele_only_dat$bipolar == 1, 0,1)
+bipolar_alc_tob = wilcox.test(alc_tob_diag_tele_only_dat$total_month6 ~ alc_tob_diag_tele_only_dat$bipolar_recode, conf.int = TRUE)
+bipolar_alc_tob = data.frame(t_value = bipolar_alc_tob$statistic, p_value = bipolar_alc_tob$p.value, lower = bipolar_alc_tob$conf.int[1], upper = bipolar_alc_tob$conf.int[2])
+### Check against wilcox results if both significant than good
+wilcox.test(alc_tob_diag_tele_only_dat$total_month6 ~ alc_tob_diag_tele_only_dat$bipolar_recode)
+
+n_bipolar_alc_tob =describe.factor(alc_tob_diag_tele_only_dat$bipolar)
+n_bipolar_alc_tob = data.frame(n_bipolar_alc_tob)
+n_bipolar_alc_tob = n_bipolar_alc_tob[1,]
+n_bipolar_alc_tob = data.frame(n_bipolar_alc_tob)
+colnames(n_bipolar_alc_tob) = n_bipolar_alc_tob
+colnames(n_bipolar_alc_tob) = c("No bipolar count", "Bipolar count")
+n_alc_tob_dat = data.frame(dim(alc_tob_diag_tele_only_dat)[1])
+colnames(n_alc_tob_dat) = "Alcohol or tobacco use total n"
+
+alc_tob_bipolar_means = compmeans(alc_tob_diag_tele_only_dat$total_month6, alc_tob_diag_tele_only_dat$bipolar)
+
+alc_tob_bipolar_d = psych::cohen.d(alc_tob_diag_tele_only_dat$total_month6, group = alc_tob_diag_tele_only_dat$bipolar)
+
+
+results_alc_tob_bipolar = data.frame(bipolar_alc_tob, n_total = n_alc_tob_dat, n_bipolar_alc_tob[2], n_bipolar_alc_tob[1], raw_p_change = round((alc_tob_bipolar_means[2,1] -  alc_tob_bipolar_means[1,1]) /  alc_tob_bipolar_means[1,1],3), bipolar_mean =  alc_tob_bipolar_means[2,1], no_bipolar_mean =  alc_tob_bipolar_means[1,1], bipolar_sd= alc_tob_bipolar_means[2,3], no_bipolar_sd= alc_tob_bipolar_means[1,3],freq_cohen_d = round(alc_tob_bipolar_d$cohen.d[2],3))
+results_alc_tob_bipolar = round(results_alc_tob_bipolar, 2)
+library(gt)
+title_results_alc_tob_bipolar = "Wilcox test results for alcohol or tobacco last 30 days at 6-months for telehealth clients with primary diagnosis as bipolar"
+table_results_alc_tob_bipolar = 
+  gt(results_alc_tob_bipolar) %>%
+  tab_header(title = title_results_alc_tob_bipolar)%>%
+  cols_label(t_value = md("W-value"), p_value = md("P-value"), lower = md("Lower"), upper = md("Upper"),Alcohol.or.tobacco.use.total.n
+ = md("Alcohol or tobacco total n") , Bipolar.count = md("Bipolar count"), No.bipolar.count = md("No bipolar count"), raw_p_change = md("raw p change"), bipolar_mean = md("Bipolar mean"), no_bipolar_mean = md("No bipolar mean"), bipolar_sd = md("Bipolar sd"), no_bipolar_sd = md("No bipolar sd"), freq_cohen_d = md("Cohen D"))
+table_results_alc_tob_bipolar
+
+gtsave(table_results_alc_tob_bipolar, "table_results_alc_tob_bipolar.png")
+
+
+
+```
 
 Not doing this no 6-month data
 
@@ -1078,3 +1363,84 @@ recommend_agree_results = round(recommend_agree_results,2)
 recommend_agree_results
 write.csv(recommend_agree_results, "recommend_agree_results.csv")
 ```
+Perception of care for dep
+```{r}
+telehealth_noms_wide_pc_dep = telehealth_noms_wide_noms[c("telehealth.y", "Recover.x", "Recover.y", "Rights.x", "Rights.y", "Responsibility.x", "Responsibility.y", "SideEffects.x", "SideEffects.y", "SharingTreatmentInformation.x", "SharingTreatmentInformation.y", "SensitiveToCulture.x", "SensitiveToCulture.y", "InformationNeeded.x", "InformationNeeded.y", "ConsumerRunPrograms.x", "ConsumerRunPrograms.y", "ComfortableAskingQuestions.x", "ComfortableAskingQuestions.y", "TreatmentGoals.x", "TreatmentGoals.y", "LikeServices.x", "LikeServices.y", "Choices.x", "Choices.y", "RecommendAgency.x", "RecommendAgency.y", "dep", "bipolar")]
+
+apply(telehealth_noms_wide_pc_dep, 2, function(x){describe.factor(x)})
+
+telehealth_noms_wide_pc_dep$total_month6 = apply(telehealth_noms_wide_pc_dep[,c(3,5,7,9,11,13,15,17,19,21,23,25,27)], 1, mean, na.rm = TRUE)
+
+
+telehealth_noms_wide_pc_dep_complete = na.omit(telehealth_noms_wide_pc_dep[c("telehealth.y", "total_month6", "dep", "bipolar")])
+telehealth_noms_wide_pc_dep_complete = subset(telehealth_noms_wide_pc_dep_complete, dep == 1)
+n_total =  dim(telehealth_noms_wide_pc_dep_complete)[1]
+
+
+#### What percent of staff with dep  have a positive perception of care with centertone 
+telehealth_only_positive = subset(telehealth_noms_wide_pc_dep_complete, telehealth.y == 1)
+telehealth_only_positive$positive = ifelse(telehealth_only_positive$total_month6 > 3, 1, 0)
+
+agree_p_n =  describe.factor(telehealth_only_positive$positive)
+agree_p_n = data.frame(agree_p_n, less_than_agree = c(0,0))
+agree_p_n$total = apply(agree_p_n, 1, sum)
+colnames(agree_p_n) = c("agree_or_greater", "less_than_agree", "total")
+agree_p_n_dep = round(agree_p_n,2)
+write.csv(agree_p_n_dep, "agree_p_n_dep.csv")
+
+#### Recomend for dep
+recommend_agree = subset(telehealth_noms_wide_pc_dep, telehealth.y == 1)
+recommend_agree = subset(recommend_agree, dep == 1)
+recommend_agree = recommend_agree[c("telehealth.y", "RecommendAgency.y")]
+recommend_agree_complete = na.omit(recommend_agree)
+recommend_agree_complete$recommend_agree = ifelse(recommend_agree_complete$RecommendAgency.y > 3, 1, 0)
+recommend_agree_results =  data.frame(describe.factor(recommend_agree_complete$recommend_agree))
+recommend_agree_results =data.frame(recommend_agree_results, less_than_agree = c(0,0)) 
+recommend_agree_results$total = apply(recommend_agree_results, 1, sum)
+colnames(recommend_agree_results) = c("agree_or_greater", "less_than_agree", "total")
+recommend_agree_results = round(recommend_agree_results,2)
+recommend_agree_results
+write.csv(recommend_agree_results, "recommend_agree_results.csv")
+```
+Perception of care for bipolar
+```{r}
+telehealth_noms_wide_pc_bipolar = telehealth_noms_wide_noms[c("telehealth.y", "Recover.x", "Recover.y", "Rights.x", "Rights.y", "Responsibility.x", "Responsibility.y", "SideEffects.x", "SideEffects.y", "SharingTreatmentInformation.x", "SharingTreatmentInformation.y", "SensitiveToCulture.x", "SensitiveToCulture.y", "InformationNeeded.x", "InformationNeeded.y", "ConsumerRunPrograms.x", "ConsumerRunPrograms.y", "ComfortableAskingQuestions.x", "ComfortableAskingQuestions.y", "TreatmentGoals.x", "TreatmentGoals.y", "LikeServices.x", "LikeServices.y", "Choices.x", "Choices.y", "RecommendAgency.x", "RecommendAgency.y", "bipolar", "bipolar")]
+
+apply(telehealth_noms_wide_pc_bipolar, 2, function(x){describe.factor(x)})
+
+telehealth_noms_wide_pc_bipolar$total_month6 = apply(telehealth_noms_wide_pc_bipolar[,c(3,5,7,9,11,13,15,17,19,21,23,25,27)], 1, mean, na.rm = TRUE)
+
+
+telehealth_noms_wide_pc_bipolar_complete = na.omit(telehealth_noms_wide_pc_bipolar[c("telehealth.y", "total_month6", "bipolar", "bipolar")])
+telehealth_noms_wide_pc_bipolar_complete = subset(telehealth_noms_wide_pc_bipolar_complete, bipolar == 1)
+n_total =  dim(telehealth_noms_wide_pc_bipolar_complete)[1]
+
+
+#### What percent of staff with bipolar  have a positive perception of care with centertone 
+telehealth_only_positive = subset(telehealth_noms_wide_pc_bipolar_complete, telehealth.y == 1)
+telehealth_only_positive$positive = ifelse(telehealth_only_positive$total_month6 > 3, 1, 0)
+
+agree_p_n =  describe.factor(telehealth_only_positive$positive)
+agree_p_n = data.frame(agree_p_n, less_than_agree = c(0,0))
+agree_p_n$total = apply(agree_p_n, 1, sum)
+colnames(agree_p_n) = c("agree_or_greater", "less_than_agree", "total")
+agree_p_n_bipolar = round(agree_p_n,2)
+write.csv(agree_p_n_bipolar, "agree_p_n_bipolar.csv")
+
+#### Recomend for bipolar
+recommend_agree = subset(telehealth_noms_wide_pc_bipolar, telehealth.y == 1)
+recommend_agree = subset(recommend_agree, bipolar == 1)
+recommend_agree = recommend_agree[c("telehealth.y", "RecommendAgency.y")]
+recommend_agree_complete = na.omit(recommend_agree)
+recommend_agree_complete$recommend_agree = ifelse(recommend_agree_complete$RecommendAgency.y > 3, 1, 0)
+recommend_agree_results =  data.frame(describe.factor(recommend_agree_complete$recommend_agree))
+recommend_agree_results =data.frame(recommend_agree_results) 
+recommend_agree_results$total = apply(recommend_agree_results, 1, sum)
+colnames(recommend_agree_results) = c("agree_or_greater", "less_than_agree", "total")
+recommend_agree_results = round(recommend_agree_results,2)
+recommend_agree_results
+write.csv(recommend_agree_results, "recommend_agree_results.csv")
+
+```
+
+
