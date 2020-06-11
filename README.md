@@ -220,8 +220,8 @@ describe.factor(test_dat$telehealth.y)
 ### Enough 62 which is 62 = F40-F48 – Anxiety, dissociative, stress-related, somatoform and other nonpsychotic mental disorders
 #59 = F33 – Major depressive disorder, recurrent
 #57 = F31 – Bipolar disorder
-telehealth_noms_wide_noms$dep = ifelse(telehealth_noms_wide_noms_sat$DiagnosisOne.y == 59, 1, 0)
-telehealth_noms_wide_noms$bipolar = ifelse(telehealth_noms_wide_noms_sat$DiagnosisOne.y == 57, 1, 0)
+telehealth_noms_wide_noms$dep = ifelse(telehealth_noms_wide_noms$DiagnosisOne.y == 59, 1, 0)
+telehealth_noms_wide_noms$bipolar = ifelse(telehealth_noms_wide_noms$DiagnosisOne.y == 57, 1, 0)
 describe.factor(telehealth_noms_wide_noms$dep)
 
 ```
@@ -376,7 +376,7 @@ results_sat_dep
 
 
 ```
-Sat with diagnosis with t.test for just telehealth
+Sat with diagnosis with t.test for just telehealth (Run diagnosis regression to get telehealth_noms_wide_noms_sat_month6_complete)
 ```{r}
 sat_diag_tele_only_dat = subset(telehealth_noms_wide_noms_sat_month6_complete, telehealth.y == 1)
 hist(sat_diag_tele_only_dat$total_month6)
@@ -454,8 +454,6 @@ table_results_sat_bipolar =
 table_results_sat_bipolar
 
 gtsave(table_results_sat_bipolar, "table_results_sat_bipolar.png")
-
-
 
 ```
 
@@ -628,7 +626,9 @@ results_deal_diag = data.frame(par_estimate = bayes_p_change_deal_sum[2,1], sd_p
 write.csv(results_deal_diag, "results_deal_diag.csv", row.names = FALSE)
 results_deal_diag
 ```
-Manage mental health with diagnosis with t.test for just telehealth
+
+
+Manage mental health with diagnosis with t.test for just telehealth (Run diagnosis regression to get telehealth_noms_wide_noms_deal_month6_complete)
 ```{r}
 deal_diag_tele_only_dat = subset(telehealth_noms_wide_noms_deal_month6_complete, telehealth.y == 1)
 hist(deal_diag_tele_only_dat$total_month6)
@@ -867,7 +867,7 @@ results_feel_diag = data.frame(par_estimate = bayes_p_change_feel_sum[2,1], sd_p
 write.csv(results_feel_diag, "results_feel_diag.csv", row.names = FALSE)
 results_feel_diag
 ```
-Manage last 30 days with diagnosis with t.test for just telehealth
+Manage last 30 days with diagnosis with t.test for just telehealth Run diagnosis regression to get telehealth_noms_wide_noms_feel_month6_complete)
 ### Redo with wilcox test
 ```{r}
 feel_diag_tele_only_dat = subset(telehealth_noms_wide_noms_feel_month6_complete, telehealth.y == 1)
@@ -1141,12 +1141,12 @@ mean_sd_alc_tob= round(compmeans(telehealth_alc_tob_complete$total_month6, teleh
 
 results_alc_tob_diag = data.frame(odds_change_alc_tob = bayes_p_change_al_tob_sum[2,1], sd_odds_change =  bayes_p_change_al_tob_sum[2,2], ci_95 = paste0(bayes_p_change_al_tob_sum[2,3], ",", bayes_p_change_al_tob_sum[2,4]), n_total = mean_sd_sat[3,2], n_pre_telehealth = mean_sd_sat[1,2], n_post_telehealth = mean_sd_sat[2,2], raw_p_change = round((mean_sd_alc_tob[2,1]-mean_sd_alc_tob[1,1])/mean_sd_alc_tob[2,1],2), p_post = mean_sd_alc_tob[2,1], p_pre = mean_sd_alc_tob[1,1])
 
-write.csv(results_alc_tob, "results_alc_tob.csv", row.names = FALSE)
+write.csv(results_alc_tob_diag, "results_alc_tob_diag.csv", row.names = FALSE)
 results_alc_tob
 prior_summary(bayes_p_change_al_tob)
 exp(.2)
 ```
-Alcohol and tobacco with diagnosis with t.test for just telehealth
+Alcohol and tobacco with diagnosis with t.test for just telehealth 
 ### Redo with wilcox test
 ```{r}
 #### Get full outcome don't need to dicotmize
@@ -1241,26 +1241,6 @@ gtsave(table_results_alc_tob_bipolar, "table_results_alc_tob_bipolar.png")
 
 
 ```
-
-Not doing this no 6-month data
-
-##################################
-VIOLENCE AND TRAUMA 
-10.	Did any of these experiences feel so frightening, horrible, or upsetting that in the past and/or the present you:
-a.	Have had nightmares about it or thought about it when you did not want to?
-b.	Tried hard not to think about it or went out of your way to avoid situations that remind you of it?
-c.	Were constantly on guard, watchful, or easily startled?
-d.	Felt numb and detached from others, activities, or your surroundings?
-VT_OnGuard
-
-```{r}
-
-telehealth_noms_wide_vt = telehealth_noms_wide_noms[c("telehealth.y","VT_NightmaresThoughts.x", "VT_NightmaresThoughts.y", "VT_NotThinkAboutIt.x", "VT_NotThinkAboutIt.y", "VT_OnGuard.x", "VT_OnGuard.y", "VT_NumbDetached.x", "VT_NumbDetached.y")]
-
-apply(telehealth_noms_wide_vt, 2, function(x){describe.factor(x)})
-
-```
-
 
 #################
 PERCEPTION OF CARE
