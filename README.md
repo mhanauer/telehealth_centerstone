@@ -1422,5 +1422,60 @@ recommend_agree_results
 write.csv(recommend_agree_results, "recommend_agree_results.csv")
 
 ```
+Health care and job analysis
+
+All nights vairable are 1 to 30.
+1 = Full time, 2 = part-time
+```{r}
+healthcare_dat = data.frame(NightsDetox.x = telehealth_noms_wide_noms$NightsDetox.x, NightsDetox.y = telehealth_noms_wide_noms$NightsDetox.y, NightsHospitalMHC.x = telehealth_noms_wide_noms$NightsHospitalMHC.x, NightsHospitalMHC.y = telehealth_noms_wide_noms$NightsHospitalMHC.y, TimesER.x = telehealth_noms_wide_noms$TimesER.x, TimesER.y = telehealth_noms_wide_noms$TimesER.y, NightsJail.x = telehealth_noms_wide_noms$NightsJail.x, NightsJail.y = telehealth_noms_wide_noms$NightsJail.y, Employment.x = telehealth_noms_wide_noms$Employment.x, Employment.y = telehealth_noms_wide_noms$Employment.y)
+```
+Check missingness and descriptives
+```{r}
+healthcare_dat
+miss_var_summary(healthcare_dat)
+apply(healthcare_dat, 2, function(x){describe.factor(x)})
+```
+Create employment variables and combine detox and MHC variables
+For employment assume 20 for part-time and 30 for full time.  Create variables for both and look at the difference between the two and take that amount times the rate
+```{r}
+healthcare_dat$part_time.x = ifelse(healthcare_dat$Employment.x == 2, 1, 0)
+healthcare_dat$part_time.y = ifelse(healthcare_dat$Employment.y == 2, 1, 0)
+
+healthcare_dat$full_time.x = ifelse(healthcare_dat$Employment.x == 1, 1, 0)
+healthcare_dat$full_time.y = ifelse(healthcare_dat$Employment.y == 1, 1, 0)
+
+healthcare_dat$MHC_detox.x = healthcare_dat$NightsHospitalMHC.x+ healthcare_dat$NightsDetox.x
+healthcare_dat$MHC_detox.y = healthcare_dat$NightsHospitalMHC.y+ healthcare_dat$NightsDetox.y
+
+
+```
+Look at ER visits.  Get the average number of visits at post minus intake then times by with complete data
+```{r}
+er_visit_dat = healthcare_dat[c("TimesER.x","TimesER.y")]
+er_visit_dat_complete = na.omit(er_visit_dat)
+n_er_visit_dat_complete =  dim(er_visit_dat)[1]
+er_visit_dat_complete$diff_er =er_visit_dat_complete$TimesER.y  -er_visit_dat_complete$TimesER.x
+er_cost= mean(er_visit_dat_complete$diff_er)*5680.56*n_er_visit_dat_complete
+er_cost
+```
+Hosptial reduction costs
+```{r}
+hos_visit_dat = healthcare_dat[c("MHC_detox.y","MHC_detox.x")]
+hos_visit_dat_complete = na.omit(hos_visit_dat)
+n_hos_visit_dat_complete =  dim(hos_visit_dat)[1]
+hos_visit_dat_complete$diff_hos =hos_visit_dat_complete$MHC_detox.y -hos_visit_dat_complete$MHC_detox.x
+hos_cost= mean(hos_visit_dat_complete$diff_hos)*2534.62*n_hos_visit_dat_complete
+hos_cost
+```
+Jail time
+```{r}
+jail_visit_dat = healthcare_dat[c("NightsJail.y","NightsJail.x")]
+jail_visit_dat_complete = na.omit(jail_visit_dat)
+n_jail_visit_dat_complete =  dim(jail_visit_dat)[1]
+jail_visit_dat_complete$diff_jail =jail_visit_dat_complete$NightsJail.y -jail_visit_dat_complete$NightsJail.x
+jail_cost= mean(jail_visit_dat_complete$diff_jail)*103.53*n_jail_visit_dat_complete
+jail_cost
+```
+Employment
 
 
