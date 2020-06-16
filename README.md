@@ -1505,15 +1505,36 @@ total_cost = sum(er_cost, hos_cost, jail_cost, -part_cost, -full_cost)
 total_cost
 ```
 Make Table with each amount per unit for measure, number of measurses, and the units, then amount.
+
+table_office_why = 
+  gt(office_why_dat) %>%
+  tab_header(title = title_office_why)%>%
+  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
+  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
+table_office_why
+gtsave(table_office_why, "table_office_why.png")
 ```{r}
+library(dplyr)
 tab_dat = matrix(c("ER", "hospital", "jail", "part_time", "full_time", "Total", 5680.56, 2534.62, 103.53, 1740, 3480, "", mean_er_diff, mean_hos_diff, mean_jail_diff, mean_part_diff, mean_full_diff, "", n_er_visit_dat_complete, n_hos_visit_dat_complete, n_jail_visit_dat_complete, n_part_visit_dat_complete, n_full_visit_dat_complete, "", er_cost, hos_cost, jail_cost, part_cost, full_cost, total_cost), nrow = 6)
 tab_dat = data.frame(tab_dat)
-colnames(tab_dat) = c("Measure", "Savings per unit", "Average Number / Percentage of units", "Number of participants", "Cost savings")
+colnames(tab_dat) = c("measure", "savings_per_unit", "average_units", "n_clients", "cost_savings")
 tab_dat
 library(gt)
+title_tab_dat = c("Cost saving and job benefits from NOMS data 6-1-20")
 ### Add title, change names of measure, make $, add footnote for part and full time cost savings, add footnote for average saving percentage to make it clear what the units are.
+tab_dat$measure = recode(tab_dat$measure, "part_time" = "Part time", "jail"= "Jail", "hospital" = "Hospital", "full_time" = "Full time")
+write.csv(tab_dat, "tab_dat.csv", row.names = FALSE)
+tab_dat = read.csv("tab_dat.csv", header = TRUE)
+tab_dat_table =  gt(tab_dat) %>%
+    tab_header(title = title_tab_dat) %>%
+    tab_footnote(footnote = "Unit is number of ER visits",  locations = cells_body(columns = vars(average_units), rows = 1)) %>%
+ tab_footnote(footnote = "Unit is number of days",  locations = cells_body(columns = vars(average_units), rows = c(2,3))) %>%
+    tab_footnote(footnote = "Unit is percentage change for part / full time job",  locations = cells_body(columns = vars(average_units), rows = c(4,5)))%>%
+    fmt_currency(columns = vars(savings_per_unit, cost_savings))%>%
+    tab_footnote(footnote = "Full time and part-time amounts have a negative sign added to them before creating the total to put them in the same direction as cost savings",  locations = cells_body(columns = vars(cost_savings), rows = c(4,5)))%>%
+    cols_label(measure = md("Measure"), savings_per_unit = md("Savings per unit"), average_units = md("Average unit or percentage unit change"), n_clients = md("Number of clients"), cost_savings = md("Cost savings"))
 
-gt(tab_dat)
+gtsave(tab_dat_table, "tab_dat_table.png")   
 ```
 
 
