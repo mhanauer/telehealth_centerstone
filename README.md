@@ -1446,8 +1446,6 @@ healthcare_dat$full_time.y = ifelse(healthcare_dat$Employment.y == 1, 1, 0)
 
 healthcare_dat$MHC_detox.x = healthcare_dat$NightsHospitalMHC.x+ healthcare_dat$NightsDetox.x
 healthcare_dat$MHC_detox.y = healthcare_dat$NightsHospitalMHC.y+ healthcare_dat$NightsDetox.y
-
-
 ```
 Look at ER visits.  Get the average number of visits at post minus intake then times by with complete data
 ```{r}
@@ -1455,7 +1453,8 @@ er_visit_dat = healthcare_dat[c("TimesER.x","TimesER.y")]
 er_visit_dat_complete = na.omit(er_visit_dat)
 n_er_visit_dat_complete =  dim(er_visit_dat)[1]
 er_visit_dat_complete$diff_er =er_visit_dat_complete$TimesER.y  -er_visit_dat_complete$TimesER.x
-er_cost= mean(er_visit_dat_complete$diff_er)*5680.56*n_er_visit_dat_complete
+mean_er_diff = round(mean(er_visit_dat_complete$diff_er), 2)
+er_cost= round(mean_er_diff*5680.56*n_er_visit_dat_complete,2)
 er_cost
 ```
 Hosptial reduction costs
@@ -1464,7 +1463,9 @@ hos_visit_dat = healthcare_dat[c("MHC_detox.y","MHC_detox.x")]
 hos_visit_dat_complete = na.omit(hos_visit_dat)
 n_hos_visit_dat_complete =  dim(hos_visit_dat)[1]
 hos_visit_dat_complete$diff_hos =hos_visit_dat_complete$MHC_detox.y -hos_visit_dat_complete$MHC_detox.x
-hos_cost= mean(hos_visit_dat_complete$diff_hos)*2534.62*n_hos_visit_dat_complete
+range(hos_visit_dat_complete$diff_hos)
+mean_hos_diff = round(mean(hos_visit_dat_complete$diff_hos),2)
+hos_cost= round(mean_hos_diff*2534.62*n_hos_visit_dat_complete,2)
 hos_cost
 ```
 Jail time
@@ -1473,9 +1474,48 @@ jail_visit_dat = healthcare_dat[c("NightsJail.y","NightsJail.x")]
 jail_visit_dat_complete = na.omit(jail_visit_dat)
 n_jail_visit_dat_complete =  dim(jail_visit_dat)[1]
 jail_visit_dat_complete$diff_jail =jail_visit_dat_complete$NightsJail.y -jail_visit_dat_complete$NightsJail.x
-jail_cost= mean(jail_visit_dat_complete$diff_jail)*103.53*n_jail_visit_dat_complete
+mean_jail_diff = round(mean(jail_visit_dat_complete$diff_jail),2)
+jail_cost= round(mean_jail_diff*103.53*n_jail_visit_dat_complete,2)
 jail_cost
 ```
 Employment
+Look at the average difference between part time and full jobs.  This is the percentage change which is the percentage of the population that changed that is affected. For example, if the mean of the difference is .15, then 15% of people of increased job so take the amount for that measure times .15 * the number of people in the complete data set.
+
+```{r}
+part_dat = healthcare_dat[c("part_time.x","part_time.y")]
+part_dat_complete = na.omit(part_dat)
+n_part_dat_complete =  dim(part_dat)[1]
+part_dat_complete$diff_part =part_dat_complete$part_time.y -part_dat_complete$part_time.x
+mean_part_diff = round(mean(part_dat_complete$diff_part),2)
+part_cost= round(mean_part_diff*1740*n_part_dat_complete,2)
+part_cost
+
+full_dat = healthcare_dat[c("full_time.x","full_time.y")]
+full_dat_complete = na.omit(full_dat)
+n_full_dat_complete =  dim(full_dat)[1]
+full_dat_complete$diff_full =full_dat_complete$full_time.y -full_dat_complete$full_time.x
+range(full_dat_complete$diff_full)
+mean_full_diff = round(mean(full_dat_complete$diff_full),2)
+full_cost= round(mean_full_diff*3480*n_full_dat_complete, 2)
+full_cost
+
+
+### Get total cost
+total_cost = sum(er_cost, hos_cost, jail_cost, -part_cost, -full_cost)
+total_cost
+```
+Make Table with each amount per unit for measure, number of measurses, and the units, then amount.
+```{r}
+tab_dat = matrix(c("ER", "hospital", "jail", "part_time", "full_time", "Total", 5680.56, 2534.62, 103.53, 1740, 3480, "", mean_er_diff, mean_hos_diff, mean_jail_diff, mean_part_diff, mean_full_diff, "", n_er_visit_dat_complete, n_hos_visit_dat_complete, n_jail_visit_dat_complete, n_part_visit_dat_complete, n_full_visit_dat_complete, "", er_cost, hos_cost, jail_cost, part_cost, full_cost, total_cost), nrow = 6)
+tab_dat = data.frame(tab_dat)
+colnames(tab_dat) = c("Measure", "Savings per unit", "Average Number / Percentage of units", "Number of participants", "Cost savings")
+tab_dat
+library(gt)
+### Add title, change names of measure, make $, add footnote for part and full time cost savings, add footnote for average saving percentage to make it clear what the units are.
+
+gt(tab_dat)
+```
+
+
 
 
