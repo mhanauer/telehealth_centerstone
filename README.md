@@ -1505,14 +1505,6 @@ total_cost = sum(er_cost, hos_cost, jail_cost, -part_cost, -full_cost)
 total_cost
 ```
 Make Table with each amount per unit for measure, number of measurses, and the units, then amount.
-
-table_office_why = 
-  gt(office_why_dat) %>%
-  tab_header(title = title_office_why)%>%
-  tab_footnote(footnote = "Respondents can select all that apply so count / percent can add up to more / less than total n / 100%.  N is the total number who completed the survey according to REDCap, did not have missing data in any of the response options for each state, and stated they were working from the office.",  locations = cells_body(columns = vars(percent, n), rows = 1))%>%
-  cols_label(type_productive = md("Response option"), n = md("N"), percent = md("Percent"))
-table_office_why
-gtsave(table_office_why, "table_office_why.png")
 ```{r}
 library(dplyr)
 tab_dat = matrix(c("ER", "hospital", "jail", "part_time", "full_time", "Total", 5680.56, 2534.62, 103.53, 1740, 3480, "", mean_er_diff, mean_hos_diff, mean_jail_diff, mean_part_diff, mean_full_diff, "", n_er_visit_dat_complete, n_hos_visit_dat_complete, n_jail_visit_dat_complete, n_part_visit_dat_complete, n_full_visit_dat_complete, "", er_cost, hos_cost, jail_cost, part_cost, full_cost, total_cost), nrow = 6)
@@ -1536,7 +1528,20 @@ tab_dat_table =  gt(tab_dat) %>%
 
 gtsave(tab_dat_table, "tab_dat_table.png")   
 ```
+Response rates
+Include those who have a completed intake (i.e., no NAs) according the conducted interview variable.  I cannot calculate a reassessment rate if you have an na for Interview date.x.  So create a new variable that says interviewDate.x is NA and then subset the data.
 
+Next, only include indiviudals whose intake date is 7 months from today.
+Then find / create a variable if the participant completed the 6-month reassessment
+Then conducted why is your global reassessment rate.
+Then create a telehealth variable
 
+Then compare the response rates (percentage of eligible complete / percentage eligible) for each maybe conduct a statistical test (are they different)
 
+Because of enteries with 01/01/1869, cannot accurately figure out if a reassessment took place 6-monhts after. Therefore, assume that if the 6-month was conducted that it was conducted with the 7-month window.  Could be a bad assumption.
+```{r}
+response_dat =  data.frame(ConductedInterview.x = telehealth_noms_wide_noms$ConductedInterview.x, ConductedInterview.y = telehealth_noms_wide_noms$ConductedInterview.y, InterviewDate.x = telehealth_noms_wide_noms$InterviewDate.x, InterviewDate.y = telehealth_noms_wide_noms$InterviewDate.y) 
 
+response_dat_test = response_dat[!is.na(response_dat$ConductedInterview.x),]
+response_dat_test
+```
