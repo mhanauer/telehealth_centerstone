@@ -177,20 +177,15 @@ miss_var_summary(subset(telehealth_noms, Assessment_new == 2))
 miss_var_summary(subset(telehealth_noms, Assessment_new == 0))
 
 ### These people have two baselines delete them 'A00276''A00295''A00298'
-telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
-telehealth_noms_wide = telehealth_noms_wide[order(telehealth_noms_wide$ConsumerID),]
-## If there is no interview then delete the second, if there is only one interview delete the none interview, if there are two interviews for baseline delete the second see conductedinterview variable
-telehealth_noms_wide[c(276, 291, 298),]
-telehealth_noms_wide = telehealth_noms_wide[-c(276, 291, 298),] 
 
-### These repeating
-#Consumergrant ID '169658'SM81849 Consumer ID '169658'  
-# Consumergrant ID'180815'SM81849 Consuerm ID '180815'
-telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID_grant == "'169658'SM81849" | ConsumerID_grant == "'180815'SM81849")
-telehealth_noms_wide_test
-telehealth_noms_wide[c(3779:3900),]
-#
-telehealth_noms_wide = telehealth_noms_wide[-c(3754, 3779),] 
+telehealth_noms_wide = telehealth_noms_wide[order(telehealth_noms_wide$ConsumerID),]
+telehealth_noms_wide_test = subset(telehealth_noms_wide, ConsumerID == "'A00276'" | ConsumerID == "'A00295'" | ConsumerID == "'A00298'")
+## If there is no interview then delete the second, if there is only one interview delete the none interview, if there are two interviews for baseline delete the second see conductedinterview variable
+telehealth_noms_wide[c(1942, 1960, 1965),]
+telehealth_noms_wide = telehealth_noms_wide[-c(1942, 1960, 1965),] 
+
+
+#telehealth_noms_wide = telehealth_noms_wide[-c(3754, 3779),] 
 telehealth_noms_base_noms = subset(telehealth_noms_wide,Assessment_new == 0)
 telehealth_noms_month6_noms = subset(telehealth_noms_wide,Assessment_new == 2)
 describe.factor(telehealth_noms_base_noms$grant)
@@ -223,7 +218,7 @@ describe.factor(test_dat$telehealth.y)
 telehealth_noms_wide_noms$dep = ifelse(telehealth_noms_wide_noms$DiagnosisOne.y == 59, 1, 0)
 telehealth_noms_wide_noms$bipolar = ifelse(telehealth_noms_wide_noms$DiagnosisOne.y == 57, 1, 0)
 describe.factor(telehealth_noms_wide_noms$dep)
-
+telehealth_noms_wide_noms$InterviewDate.y
 ```
 
 ################################################
@@ -1529,19 +1524,55 @@ tab_dat_table =  gt(tab_dat) %>%
 gtsave(tab_dat_table, "tab_dat_table.png")   
 ```
 Response rates
-Include those who have a completed intake (i.e., no NAs) according the conducted interview variable.  I cannot calculate a reassessment rate if you have an na for Interview date.x.  So create a new variable that says interviewDate.x is NA and then subset the data.
 
-Next, only include indiviudals whose intake date is 7 months from today.
-Then find / create a variable if the participant completed the 6-month reassessment
-Then conducted why is your global reassessment rate.
-Then create a telehealth variable
 
-Then compare the response rates (percentage of eligible complete / percentage eligible) for each maybe conduct a statistical test (are they different)
+Include everyone in the data set, because if they are in the data set then we are responsible for them.  
+Subset the interviewDate.y data to exclude anyone
+Generally got the data on 6-1-20.  So exclude all InterviewDate.x respones 7 months before. So start at 11-1-19 for intake. 
 
-Because of enteries with 01/01/1869, cannot accurately figure out if a reassessment took place 6-monhts after. Therefore, assume that if the 6-month was conducted that it was conducted with the 7-month window.  Could be a bad assumption.
+Then you can assume everyone in the data set should have received a reassessmetn and if not then we missed it. 
+
+Then go on conducted interview.y for the response rate
+
+Then conduct a seperate analysis for telehealth, because you cannot have NAs in the interview dates
+
+Get the number of eligible participants for reassessments
+Then get the number of reassessments that have been conducted
+
 ```{r}
-response_dat =  data.frame(ConductedInterview.x = telehealth_noms_wide_noms$ConductedInterview.x, ConductedInterview.y = telehealth_noms_wide_noms$ConductedInterview.y, InterviewDate.x = telehealth_noms_wide_noms$InterviewDate.x, InterviewDate.y = telehealth_noms_wide_noms$InterviewDate.y) 
+library(lubridate)
+library(tidyr)
+response_dat =  data.frame(ConsumerID.x = telehealth_noms_wide_noms$ConsumerID.x, ConductedInterview.x = telehealth_noms_wide_noms$ConductedInterview.x, ConductedInterview.y = telehealth_noms_wide_noms$ConductedInterview.y, InterviewDate.x = telehealth_noms_wide_noms$InterviewDate.x, InterviewDate.y = telehealth_noms_wide_noms$InterviewDate.y) 
+### Exchange NAs in InterviewDate.x, because they are in the system so they count towards the response rate.  replace with 1869-01-01.
+response_dat$InterviewDate.x = replace_na(response_dat$InterviewDate.x, "01/01/1869") 
+response_dat$InterviewDate.x = mdy(response_dat$InterviewDate.x)
+response_dat$InterviewDate.y = mdy(response_dat$InterviewDate.y)
+# Create a variable that says whether someone is before "2019-11-01" or InterviewDate.y is not "1869-01-01" then keep them in the data set, because they should have completed the assessment or they have already completed the assessment 
+## I want those who have an interview less than "2019-11-01".  I also want those who may have interview past "2019-11-01", but have completed the interview already.  Create a third variable that says 1 if you have an interview data before or you have a 
+subset(response_dat, InterviewDate.y == "2019-10-25")
+# 'A00298' subset interview date y is before interview date x
+response_dat = subset(response_dat, ConsumerID.x != "'A00298'")
+subset(response_dat, InterviewDate.y == "2019-10-25")
 
-response_dat_test = response_dat[!is.na(response_dat$ConductedInterview.x),]
-response_dat_test
+response_dat$eligible_or_complete = ifelse(response_dat$InterviewDate.x < "2019-11-01" | response_dat$InterviewDate.y != "1869-01-01",1 , 0)
+describe.factor(response_dat$eligible_or_complete)
+test = subset(response_dat, InterviewDate.x > "2019-11-01")
+test = subset(test, InterviewDate.y != "1869-01-01")
+test
+## So no one has completed their reassessments early.
+### Error in InterviewDate.y at 2019-10-25
+
+subset(response_dat, InterviewDate.y == "2019-10-25")
+
+
+response_dat_full
+sum(is.na(response_dat_full))
+describe.factor(response_dat_full$telehealth)
+
+subset(response_dat, InterviewDate.y >= "2020-04-01")
+
 ```
+
+
+
+
