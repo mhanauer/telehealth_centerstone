@@ -1524,52 +1524,85 @@ tab_dat_table =  gt(tab_dat) %>%
 gtsave(tab_dat_table, "tab_dat_table.png")   
 ```
 Response rates
-
-
-Include everyone in the data set, because if they are in the data set then we are responsible for them.  
-Subset the interviewDate.y data to exclude anyone
-Generally got the data on 6-1-20.  So exclude all InterviewDate.x respones 7 months before. So start at 11-1-19 for intake. 
-
-Then you can assume everyone in the data set should have received a reassessmetn and if not then we missed it. 
-
-Then go on conducted interview.y for the response rate
-
-Then conduct a seperate analysis for telehealth, because you cannot have NAs in the interview dates
-
-Get the number of eligible participants for reassessments
-Then get the number of reassessments that have been conducted
+Want telehealth_noms, because that is not merged yet.  
+Then keep Assessment_new 0 for baseline and 2 for 6-month
 
 ```{r}
 library(lubridate)
 library(tidyr)
-response_dat =  data.frame(ConsumerID.x = telehealth_noms_wide_noms$ConsumerID.x, ConductedInterview.x = telehealth_noms_wide_noms$ConductedInterview.x, ConductedInterview.y = telehealth_noms_wide_noms$ConductedInterview.y, InterviewDate.x = telehealth_noms_wide_noms$InterviewDate.x, InterviewDate.y = telehealth_noms_wide_noms$InterviewDate.y) 
-### Exchange NAs in InterviewDate.x, because they are in the system so they count towards the response rate.  replace with 1869-01-01.
-response_dat$InterviewDate.x = replace_na(response_dat$InterviewDate.x, "01/01/1869") 
-response_dat$InterviewDate.x = mdy(response_dat$InterviewDate.x)
-response_dat$InterviewDate.y = mdy(response_dat$InterviewDate.y)
-# Create a variable that says whether someone is before "2019-11-01" or InterviewDate.y is not "1869-01-01" then keep them in the data set, because they should have completed the assessment or they have already completed the assessment 
-## I want those who have an interview less than "2019-11-01".  I also want those who may have interview past "2019-11-01", but have completed the interview already.  Create a third variable that says 1 if you have an interview data before or you have a 
-subset(response_dat, InterviewDate.y == "2019-10-25")
-# 'A00298' subset interview date y is before interview date x
-response_dat = subset(response_dat, ConsumerID.x != "'A00298'")
-subset(response_dat, InterviewDate.y == "2019-10-25")
+response_dat =  data.frame(ConsumerID = telehealth_noms$ConsumerID, ConductedInterview = telehealth_noms$ConductedInterview, InterviewDate = telehealth_noms$InterviewDate, Assessment_new = telehealth_noms$Assessment_new)
+response_dat = subset(response_dat, Assessment_new == 0 | Assessment_new == 2)
+response_dat$InterviewDate = mdy(response_dat$InterviewDate)
+### Assume everyone in the system counts towards the reassessment rate
+## Let's limit the data set to only those who are eligible then get the number of 6-months relative to the total baselines.  So describe.factor for the number of 2's divided by the number of 0's. 
+## If you have interview date for 0 that is less than  "2019-11-01" create a variable
+### If you have interview date for 2 that is greater than or equal to "2019-11-01" and not "1869-01-01" then a one 
+## Then keep if either rule 1 or rule 2 is true
+response_dat$rule_1 = ifelse(response_dat$Assessment_new == 0 & response_dat$InterviewDate < "2019-11-01",1, 0)
+response_dat$rule_2 = ifelse(response_dat$Assessment_new == 2 & response_dat$InterviewDate >= "2019-11-01" & response_dat$InterviewDate != "1869-01-01", 1, 0)
+describe.factor(response_dat$rule_2)
+subset(response_dat, rule_2==1)
+response_dat_eligible = subset(response_dat, rule_1 == 1 | rule_2 == 1)
+tail(response_dat_eligible,100)
+response_dat_eligible
+all_response_rate_dat =  describe.factor(response_dat_eligible$Assessment_new)
+elig_n_all = all_response_rate_dat[1,1]
+elig_n_6_month =all_response_rate_dat[1,2]
+all_response_rate = round(elig_n_6_month /elig_n_all ,2)
+all_response_rate
+## What is the rate before telehealth?  Exclude anyone with an intake or reassessment before 2020-04-01
+response_dat_eligible_face = subset(response_dat, InterviewDate < "2020-04-01")
+### Get rid of client 7 months prior to 2020-4-1, because they would not be eligible
+response_dat_eligible_face$rule_1 = ifelse(response_dat_eligible_face$Assessment_new == 0 & response_dat_eligible_face$InterviewDate < "2019-09-01",1, 0)
+response_dat_eligible_face$rule_2 = ifelse(response_dat_eligible_face$Assessment_new == 2 & response_dat_eligible_face$InterviewDate >= "2019-09-01" & response_dat_eligible_face$InterviewDate != "1869-01-01", 1, 0)
+subset(response_dat_eligible_face, rule_2==1)
 
-response_dat$eligible_or_complete = ifelse(response_dat$InterviewDate.x < "2019-11-01" | response_dat$InterviewDate.y != "1869-01-01",1 , 0)
-describe.factor(response_dat$eligible_or_complete)
-test = subset(response_dat, InterviewDate.x > "2019-11-01")
-test = subset(test, InterviewDate.y != "1869-01-01")
-test
-## So no one has completed their reassessments early.
-### Error in InterviewDate.y at 2019-10-25
+response_dat_eligible_face = subset(response_dat_eligible_face, rule_1 == 1 | rule_2 == 1)
 
-subset(response_dat, InterviewDate.y == "2019-10-25")
+response_dat_eligible_face
+
+face_response_rate_dat =  describe.factor(response_dat_eligible_face$Assessment_new)
+elig_n_all_face = face_response_rate_dat[1,1]
+elig_n_6_month_face =face_response_rate_dat[1,2]
+response_rate_face = round(elig_n_6_month_face /elig_n_all_face ,2)
+response_rate_face
+
+```
+Response rate table
+Total N is used for N is proportion tests: https://sixsigmastudyguide.com/one-and-two-sample-proportion-hypothesis-tests/
+https://stattrek.com/hypothesis-test/difference-in-proportions.aspx
+```{r}
+tab_response_rate = matrix(c(elig_n_all, elig_n_6_month, all_response_rate, elig_n_all_face, elig_n_6_month_face, response_rate_face), nrow = 2, byrow = TRUE)
+tab_response_rate = data.frame(tab_response_rate) 
+colnames(tab_response_rate) = c("n_all", "n_6", "rr")
+all_telehealth = c("Telehealth", "Face to face")
+tab_response_rate = data.frame(all_telehealth, tab_response_rate)
+
+title_tab_response = c("Comparing response rates for face to face and telehealth from NOMS data as of 6-1-20")
+tab_response = gt(tab_response_rate)%>%
+     tab_header(title = title_tab_response)%>%
+    tab_footnote(footnote = "N all for telehealth  means all clients with intake data prior to 11-1-19, which is 7 months prior 6-1-20.  Only including clients who have intake data 7 months prior to 6-1-20 ensures we only include clients who should have received a 6-month reassessment.  However, we also included a client if they had a 6-month reassessment and the intake was after 11-1-19, because that means their data was collected early.",  locations = cells_body(columns = vars(n_all), rows = c(1)))%>%
+    tab_footnote(footnote = "N all for face to face first subsetting all data prior to 4-1-2019.  Then all clients with intake data prior to 09-1-19, which is 7 months prior 4-1-20.  Only including clients who have intake data 7 months prior to 4-1-20 ensures we only include clients who should have received a 6-month reassessment.  However, we also included a client if they had a 6-month reassessment and the intake was after 9-1-19, because that means their data was collected early.",  locations = cells_body(columns = vars(n_all), rows = c(2)))%>%
+    tab_footnote(footnote = "No statistically significant difference between response rates p = .34.",  locations = cells_body(columns = vars(rr), rows = c(1,2)))%>%
+    cols_label(all_telehealth = md("Time label"), n_all = md("Total N eligible"), n_6 = md("Total 6-months eligible"), rr = md("Response rate"))
+tab_response
+
+```
+Response rate statistical test
+Statistical test for client clincian sub p = (p1 * n1 + p2 * n2) / (n1 + n2) SE = sqrt{ p * ( 1 - p ) * [ (1/n1) + (1/n2) ] z = (p1 - p2) / SE https://www.cyclismo.org/tutorial/R/pValues.html
 
 
-response_dat_full
-sum(is.na(response_dat_full))
-describe.factor(response_dat_full$telehealth)
+```{r}
+tab_response_rate
+pool_samp_prop_rr = (tab_response_rate$rr[1]*tab_response_rate$n_all[1] + tab_response_rate$rr[2]*tab_response_rate$n_all[2])/(tab_response_rate$n_all[1]+ tab_response_rate$n_all[2])
 
-subset(response_dat, InterviewDate.y >= "2020-04-01")
+
+se_p_rr = sqrt(pool_samp_prop_rr*(1-pool_samp_prop_rr) * ( (1/tab_response_rate$n_all[1]) +(1/tab_response_rate$n_all[1]) ) )
+
+z_rr = (tab_response_rate$rr[1] - tab_response_rate$rr[2])/se_p_rr
+z_rr
+p_rr = round(2*pnorm(-abs(z_rr)),4)
+p_rr
 
 ```
 
