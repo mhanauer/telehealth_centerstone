@@ -1591,7 +1591,10 @@ tab_response
 
 ```
 Response rate statistical test
-Statistical test for client clincian sub p = (p1 * n1 + p2 * n2) / (n1 + n2) SE = sqrt{ p * ( 1 - p ) * [ (1/n1) + (1/n2) ] z = (p1 - p2) / SE https://www.cyclismo.org/tutorial/R/pValues.html
+Statistical test for client clincian sub p = (p1 * n1 + p2 * n2) / (n1 + n2) 
+SE = sqrt[p * ( 1 - p ) * [ (1/n1) + (1/n2) ] 
+z = (p1 - p2) / SE 
+https://www.cyclismo.org/tutorial/R/pValues.html
 
 
 ```{r}
@@ -1605,6 +1608,25 @@ z_rr = (tab_response_rate$rr[1] - tab_response_rate$rr[2])/se_p_rr
 z_rr
 p_rr = round(2*pnorm(-abs(z_rr)),4)
 p_rr
+
+```
+CRI reassess 6_18_20 
+p1 = June reassessment
+p2 = Feburray resasessment
+```{r}
+p1 = .52
+p2 = .41
+p_diff = p1-p2
+n1 = 2388
+n2 = 2403
+p = (p1 * n1 + p2 * n2) / (n1 + n2)
+se = sqrt(p * ( 1 - p ) * ((1/n1) + (1/n2))) 
+z = (p1 - p2) / se
+p_reasses = round(2*pnorm(-abs(z)),4)
+p_reasses
+
+ci_upper = p_diff+1.96*se
+ci_lower = p_diff-1.96*se
 
 ```
 
