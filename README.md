@@ -1545,6 +1545,8 @@ subset(response_dat, rule_2==1)
 response_dat_eligible = subset(response_dat, rule_1 == 1 | rule_2 == 1)
 tail(response_dat_eligible,100)
 response_dat_eligible
+### Let's try and see if you limit to only those ID's who 
+
 all_response_rate_dat =  describe.factor(response_dat_eligible$Assessment_new)
 elig_n_all = all_response_rate_dat[1,1]
 elig_n_6_month =all_response_rate_dat[1,2]
