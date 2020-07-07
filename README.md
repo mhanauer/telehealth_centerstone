@@ -219,6 +219,7 @@ telehealth_noms_wide_noms$dep = ifelse(telehealth_noms_wide_noms$DiagnosisOne.y 
 telehealth_noms_wide_noms$bipolar = ifelse(telehealth_noms_wide_noms$DiagnosisOne.y == 57, 1, 0)
 describe.factor(telehealth_noms_wide_noms$dep)
 telehealth_noms_wide_noms$InterviewDate.y
+dim(telehealth_noms_wide_noms)
 ```
 
 ################################################
@@ -323,7 +324,7 @@ bayes_p_change_sat_sum= bayes_p_change_sat_sum - 1
 bayes_p_change_sat_sum
 car::vif(bayes_p_change_sat)
 lmtest::bptest(bayes_p_change_sat)
-launch_shinystan(bayes_p_change_sat)
+#launch_shinystan(bayes_p_change_sat)
 ### Grabing the means, sds, and n's for each group
 mean_sd_sat= round(compmeans(telehealth_noms_wide_noms_sat_month6_complete$total_month6, telehealth_noms_wide_noms_sat_month6_complete$telehealth.y),2)
 mean_sd_sat
@@ -530,7 +531,7 @@ n_total = dim(telehealth_noms_wide_noms_deal_month6_complete)[1]
 bayes_p_change_deal = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gender.y+ RaceWhite.y+ dep+ bipolar, prior = my_prior, data = telehealth_noms_wide_noms_deal_month6_complete, seed = 123)
 car::vif(bayes_p_change_deal)
 lmtest::bptest(bayes_p_change_deal)
-launch_shinystan(bayes_p_change_deal)
+#launch_shinystan(bayes_p_change_deal)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_deal_sum = round(bayes_p_change_deal$stan_summary[,c(1,3,4,10)],4)
@@ -779,7 +780,6 @@ apply(telehealth_noms_wide_noms_feel_month6_complete, 2, function(x){describe.fa
 bayes_p_change_feel = stan_glm(log(total_month6)~ face_to_face + Agegroup.y+ Gender.y+ RaceWhite.y + dep + bipolar, prior = my_prior, data = telehealth_noms_wide_noms_feel_month6_complete, seed = 123)
 car::vif(bayes_p_change_feel)
 lmtest::bptest(bayes_p_change_feel)
-launch_shinystan(bayes_p_change_feel)
 #launch_shinystan(bayes_p_change_feel)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
@@ -1037,7 +1037,7 @@ telehealth_alc_tob_complete$face_to_face = ifelse(telehealth_alc_tob_complete$te
 bayes_p_change_al_tob = stan_glm(total_month6~ face_to_face + Agegroup.y + Gender.y + RaceWhite.y + dep + bipolar, prior = my_prior, family = binomial(link = "logit"), data = telehealth_alc_tob_complete, seed = 123)
 bayes_p_change_al_tob
 car::vif(bayes_p_change_al_tob)
-launch_shinystan(bayes_p_change_al_tob)
+#launch_shinystan(bayes_p_change_al_tob)
 ### You should not need to change this.  We want the mean, sd, 2.5, and 97.5
 ## check bayes_p_change_sat$stan_summary if you are unsure
 bayes_p_change_al_tob_sum = round(bayes_p_change_al_tob$stan_summary[,c(1,3,4,10)],4)
