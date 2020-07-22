@@ -1431,7 +1431,10 @@ Health care and job analysis
 All nights vairable are 1 to 30.
 1 = Full time, 2 = part-time
 ```{r}
-healthcare_dat = data.frame(NightsDetox.x = telehealth_noms_wide_noms$NightsDetox.x, NightsDetox.y = telehealth_noms_wide_noms$NightsDetox.y, NightsHospitalMHC.x = telehealth_noms_wide_noms$NightsHospitalMHC.x, NightsHospitalMHC.y = telehealth_noms_wide_noms$NightsHospitalMHC.y, TimesER.x = telehealth_noms_wide_noms$TimesER.x, TimesER.y = telehealth_noms_wide_noms$TimesER.y, NightsJail.x = telehealth_noms_wide_noms$NightsJail.x, NightsJail.y = telehealth_noms_wide_noms$NightsJail.y, Employment.x = telehealth_noms_wide_noms$Employment.x, Employment.y = telehealth_noms_wide_noms$Employment.y)
+healthcare_dat = data.frame(NightsDetox.x = telehealth_noms_wide_noms$NightsDetox.x, NightsDetox.y = telehealth_noms_wide_noms$NightsDetox.y, NightsHospitalMHC.x = telehealth_noms_wide_noms$NightsHospitalMHC.x, NightsHospitalMHC.y = telehealth_noms_wide_noms$NightsHospitalMHC.y, TimesER.x = telehealth_noms_wide_noms$TimesER.x, TimesER.y = telehealth_noms_wide_noms$TimesER.y, NightsJail.x = telehealth_noms_wide_noms$NightsJail.x, NightsJail.y = telehealth_noms_wide_noms$NightsJail.y, Employment.x = telehealth_noms_wide_noms$Employment.x, Employment.y = telehealth_noms_wide_noms$Employment.y, telehealth_noms_wide_noms$NightsDetox.x, telehealth_noms_wide_noms$NightsDetox.y)
+
+
+
 ```
 Check missingness and descriptives
 ```{r}
@@ -1482,6 +1485,21 @@ sum_jail_diff = round(sum(jail_visit_dat_complete$diff_jail),2)
 jail_cost= round(sum_jail_diff*103.53,2)
 jail_cost
 ```
+Detox
+```{r}
+detox_visit_dat = healthcare_dat[c("NightsDetox.y","NightsDetox.x")]
+detox_visit_dat_complete = na.omit(detox_visit_dat)
+n_detox_visit_dat_complete =  dim(detox_visit_dat)[1]
+detox_visit_dat_complete$diff_detox =detox_visit_dat_complete$NightsDetox.y -detox_visit_dat_complete$NightsDetox.x
+range(detox_visit_dat_complete$diff_detox)
+sum_detox_diff = round(sum(detox_visit_dat_complete$diff_detox),2)
+detox_cost= round(sum_detox_diff*525,2)
+detox_cost
+
+```
+
+
+
 Employment
 Look at the average difference between part time and full jobs.  This is the percentage change which is the percentage of the population that changed that is affected. For example, if the mean of the difference is .15, then 15% of people of increased job so take the amount for that measure times .15 * the number of people in the complete data set.
 
@@ -1500,25 +1518,25 @@ n_full_dat_complete =  dim(full_dat)[1]
 full_dat_complete$diff_full =full_dat_complete$full_time.y -full_dat_complete$full_time.x
 range(full_dat_complete$diff_full)
 sum_full_diff = round(sum(full_dat_complete$diff_full),2)
-full_cost= round(mean_full_diff*3480, 2)
+full_cost= round(sum_full_diff*3480, 2)
 full_cost
 
 
 ### Get total cost
-total_cost = sum(er_cost, hos_cost, jail_cost, -part_cost, -full_cost)
+total_cost = sum(er_cost, hos_cost, jail_cost, detox_cost, -part_cost, -full_cost)
 total_cost
 ```
-Make Table with each amount per unit for measure, number of measurses, and the units, then amount.
+Make Table with each amount per unit for measure, number of measures, and the units, then amount.
 ```{r}
 library(dplyr)
-tab_dat = matrix(c("ER", "hospital", "jail", "part_time", "full_time", "Total", 5680.56, 2534.62, 103.53, 1740, 3480, "", sum_er_diff, sum_hos_diff, sum_jail_diff, sum_part_diff, sum_full_diff, "", er_cost, hos_cost, jail_cost, part_cost, full_cost, total_cost), nrow = 6)
+tab_dat = matrix(c("ER", "hospital", "jail", "detox", "part_time", "full_time", "Total", 5680.56, 2534.62, 103.53, 525, 1740, 3480, "", sum_er_diff, sum_hos_diff, sum_jail_diff, sum_detox_diff, sum_part_diff, sum_full_diff, "", er_cost, hos_cost, jail_cost, part_cost, full_cost, total_cost), nrow = 7)
 tab_dat = data.frame(tab_dat)
 colnames(tab_dat) = c("measure", "savings_per_unit", "unit_difference", "cost_savings")
 tab_dat
 library(gt)
 title_tab_dat = c(paste0("Cost saving and job benefits from NOMS data 6-1-20", " ", "n","=", dim(healthcare_dat)[1]))
 ### Add title, change names of measure, make $, add footnote for part and full time cost savings, add footnote for average saving percentage to make it clear what the units are.
-tab_dat$measure = recode(tab_dat$measure, "part_time" = "Part time", "jail"= "Jail", "hospital" = "Hospital", "full_time" = "Full time")
+tab_dat$measure = recode(tab_dat$measure, "part_time" = "Part time", "jail"= "Jail", "hospital" = "Hospital", "detox" = "Detox", "full_time" = "Full time")
 write.csv(tab_dat, "tab_dat.csv", row.names = FALSE)
 tab_dat = read.csv("tab_dat.csv", header = TRUE)
 tab_dat_table =  gt(tab_dat) %>%
