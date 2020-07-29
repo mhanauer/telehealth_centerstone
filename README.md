@@ -1,4 +1,3 @@
----
 title: "telehealth_noms"
 output: html_document
 ---
@@ -155,9 +154,9 @@ head(telehealth_noms$date)
 telehealth_noms$telehealth = ifelse(telehealth_noms$date >= "2020-04-01", 1, 0)
 telehealth_noms[c("date","telehealth")]
 ### Cannot be greater than 2020-09-30 last day of grant
-telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
+#telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
 ## Check that all dates post 2014 most grants are for at most five years
-telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
+#telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
 telehealth_noms[c("date","telehealth")]
 dim(telehealth_noms)
 describe.factor(telehealth_noms$grant)
@@ -221,6 +220,17 @@ describe.factor(telehealth_noms_wide_noms$dep)
 telehealth_noms_wide_noms$InterviewDate.y
 dim(telehealth_noms_wide_noms)
 ```
+############
+Clean data for machine learning
+Quarter.x
+DiagnosisOne.x (get dummary vars for this variable)
+Gender.x
+SiteID.x (get dummary vars)
+```{r}
+telehealth_noms_wide_noms
+telehealth_noms_wide_noms[c("Quarter.x", "DiagnosisOne.x", "Gender.x", "HispanicLatino.x", "RaceWhite.x", "RaceBlack.x", "Agegroup.x", "SexualIdentity.x", "OverallHealth.x", "CapableManagingHealthCareNeeds.x", "HandlingDailyLife.x", "ControlLife.x", "DealWithCrisis.x", "GetsAlongWithFamily.x", "SocialSituations.x", "SchoolOrWork.x", "FunctioningHousing.x", "Symptoms.x", "Nervous.x", "Hopeless.x", "Restless.x", "Depressed.x", "EverythingEffort.x", "Worthless.x", "PsychologicalEmotionalProblems.x", "LifeQuality.x", "EnoughEnergyForEverydayLife.x", "PerformDailyActivitiesSatisfaction.x", "HealthSatisfaction.x", "SelfSatisfaction.x", "RelationshipSatisfaction.x", "SelfSatisfaction.x", "RelationshipSatisfaction.x", "Tobacco_Use.x", "Alcohol_Use.x", "Cannabis_Use.x", "Cocaine_Use.x", "Meth_Use.x", "RxOpioids_Use.x", "StreetOpioids_Use.x", "ViolenceTrauma.x", "VT_NightmaresThoughts.x", "VT_NotThinkAboutIt.x", "VT_OnGuard.x", "VT_NumbDetached.x", "PhysicallyHurt.x", "NightsHomeless.x", "NightsHospitalMHC.x", "NightsDetox.x", "NightsJail.x", "TimesER.x", "Housing.x", "LivingConditionsSatisfaction.x", "Education.x", "Employment.x", "noughMoneyForNeeds.x", "NumTimesArrested.x", "Friendships.x", "EnjoyPeople.x", "BelongInCommunity.x", "SupportFromFamily.x", "SupportiveFamilyFriends.x")]
+```
+
 
 ################################################
 Full data set created can start data analysis
