@@ -231,6 +231,10 @@ telehealth_noms_wide_noms$bipolar = ifelse(telehealth_noms_wide_noms$DiagnosisOn
 describe.factor(telehealth_noms_wide_noms$dep)
 telehealth_noms_wide_noms$InterviewDate.y
 dim(telehealth_noms_wide_noms)
+describe.factor(telehealth_noms_wide_noms$grant.x)
+
+### For telehealth cost utilization analysis, subset data for CCBHC 
+
 ```
 ############
 Clean data for machine learning
