@@ -164,6 +164,7 @@ telehealth_noms$date = ymd(telehealth_noms$date)
 head(telehealth_noms$date)
 
 telehealth_noms$telehealth = ifelse(telehealth_noms$date >= "2020-04-01", 1, 0)
+describe.factor(telehealth_noms$telehealth) 
 telehealth_noms[c("date","telehealth")]
 ### Cannot be greater than 2020-09-30 last day of grant
 #telehealth_noms = subset(telehealth_noms, date < "2020-09-30")
@@ -171,7 +172,6 @@ telehealth_noms[c("date","telehealth")]
 #telehealth_noms = subset(telehealth_noms, date > "2014-01-01")
 telehealth_noms[c("date","telehealth")]
 dim(telehealth_noms)
-describe.factor(telehealth_noms$grant)
 range(telehealth_noms$date)
 ### Create a NOMS data set  
 telehealth_noms_wide = subset(telehealth_noms, Assessment_new == 0 | Assessment_new == 2)
@@ -1456,7 +1456,10 @@ Health care and job analysis
 
 All nights vairable are 1 to 30.
 1 = Full time, 2 = part-time
+
+Only include CCBHC
 ```{r}
+healthcare_dat = subset(telehealth_noms_wide_noms, grant.x == "IN_IL_KY_CCBHC")
 healthcare_dat = data.frame(NightsDetox.x = telehealth_noms_wide_noms$NightsDetox.x, NightsDetox.y = telehealth_noms_wide_noms$NightsDetox.y, NightsHospitalMHC.x = telehealth_noms_wide_noms$NightsHospitalMHC.x, NightsHospitalMHC.y = telehealth_noms_wide_noms$NightsHospitalMHC.y, TimesER.x = telehealth_noms_wide_noms$TimesER.x, TimesER.y = telehealth_noms_wide_noms$TimesER.y, NightsJail.x = telehealth_noms_wide_noms$NightsJail.x, NightsJail.y = telehealth_noms_wide_noms$NightsJail.y, Employment.x = telehealth_noms_wide_noms$Employment.x, Employment.y = telehealth_noms_wide_noms$Employment.y)
 ```
 Check missingness and descriptives
@@ -1487,7 +1490,7 @@ sum_er_diff = round(sum(er_visit_dat_complete$diff_er), 2)
 er_cost= round(sum_er_diff*5680.56,2)
 er_cost
 ```
-Hosptial reduction costs
+Hospital reduction costs
 ```{r}
 hos_visit_dat = healthcare_dat[c("MHC_detox.y","MHC_detox.x")]
 hos_visit_dat_complete = na.omit(hos_visit_dat)
@@ -1498,66 +1501,36 @@ sum_hos_diff = round(sum(hos_visit_dat_complete$diff_hos),2)
 hos_cost= round(sum_hos_diff*2534.62,2)
 hos_cost
 ```
-Jail time
-```{r}
-jail_visit_dat = healthcare_dat[c("NightsJail.y","NightsJail.x")]
-jail_visit_dat_complete = na.omit(jail_visit_dat)
-n_jail_visit_dat_complete =  dim(jail_visit_dat)[1]
-jail_visit_dat_complete$diff_jail =jail_visit_dat_complete$NightsJail.y -jail_visit_dat_complete$NightsJail.x
-sum_jail_diff = round(sum(jail_visit_dat_complete$diff_jail),2)
-jail_cost= round(sum_jail_diff*103.53,2)
-jail_cost
-```
-Employment
-Look at the average difference between part time and full jobs.  This is the percentage change which is the percentage of the population that changed that is affected. For example, if the mean of the difference is .15, then 15% of people of increased job so take the amount for that measure times .15 * the number of people in the complete data set.
+
+Total cost
 
 ```{r}
-part_dat = healthcare_dat[c("part_time.x","part_time.y")]
-part_dat_complete = na.omit(part_dat)
-n_part_dat_complete =  dim(part_dat)[1]
-part_dat_complete$diff_part =part_dat_complete$part_time.y -part_dat_complete$part_time.x
-sum_part_diff = round(sum(part_dat_complete$diff_part),2)
-part_cost= round(sum_part_diff*1740,2)
-part_cost
-
-full_dat = healthcare_dat[c("full_time.x","full_time.y")]
-full_dat_complete = na.omit(full_dat)
-n_full_dat_complete =  dim(full_dat)[1]
-full_dat_complete$diff_full =full_dat_complete$full_time.y -full_dat_complete$full_time.x
-range(full_dat_complete$diff_full)
-sum_full_diff = round(sum(full_dat_complete$diff_full),2)
-full_cost= round(mean_full_diff*3480, 2)
-full_cost
-
-
 ### Get total cost
-total_cost = sum(er_cost, hos_cost, jail_cost, -part_cost, -full_cost)
+total_cost = sum(er_cost, hos_cost)
 total_cost
 ```
 Make Table with each amount per unit for measure, number of measurses, and the units, then amount.
 ```{r}
 library(dplyr)
-tab_dat = matrix(c("ER", "hospital", "jail", "part_time", "full_time", "Total", 5680.56, 2534.62, 103.53, 1740, 3480, "", sum_er_diff, sum_hos_diff, sum_jail_diff, sum_part_diff, sum_full_diff, "", er_cost, hos_cost, jail_cost, part_cost, full_cost, total_cost), nrow = 6)
+tab_dat = matrix(c("ER", "hospital", "Total", 5680.56, 2534.62, "", sum_er_diff, sum_hos_diff, "", er_cost, hos_cost, total_cost), nrow = 3)
 tab_dat = data.frame(tab_dat)
 colnames(tab_dat) = c("measure", "savings_per_unit", "unit_difference", "cost_savings")
 tab_dat
 library(gt)
-title_tab_dat = c(paste0("Cost saving and job benefits from NOMS data 6-1-20", " ", "n","=", dim(healthcare_dat)[1]))
+title_tab_dat = c(paste0("Cost saving from NOMS data 6-1-20", " ", "n","=", dim(healthcare_dat)[1]))
 ### Add title, change names of measure, make $, add footnote for part and full time cost savings, add footnote for average saving percentage to make it clear what the units are.
-tab_dat$measure = recode(tab_dat$measure, "part_time" = "Part time", "jail"= "Jail", "hospital" = "Hospital", "full_time" = "Full time")
+tab_dat$measure = recode(tab_dat$measure, "hospital" = "Hospital")
 write.csv(tab_dat, "tab_dat.csv", row.names = FALSE)
 tab_dat = read.csv("tab_dat.csv", header = TRUE)
 tab_dat_table =  gt(tab_dat) %>%
   tab_header(title = title_tab_dat) %>%
   tab_footnote(footnote = "Unit is change in number of ER visits",  locations = cells_body(columns = vars(unit_difference), rows = 1)) %>%
-  tab_footnote(footnote = "Unit is change in number of days",  locations = cells_body(columns = vars(unit_difference), rows = c(2,3))) %>%
-  tab_footnote(footnote = "Unit is change in number for part / full time jobs",  locations = cells_body(columns = vars(unit_difference), rows = c(4,5)))%>%
+  tab_footnote(footnote = "Unit is change in number of days",  locations = cells_body(columns = vars(unit_difference), rows = c(2))) %>%
   fmt_currency(columns = vars(savings_per_unit, cost_savings))%>%
-  tab_footnote(footnote = "Full time and part-time amounts have a negative sign added to them before creating the total to put them in the same direction as cost savings",  locations = cells_body(columns = vars(cost_savings), rows = c(4,5)))%>%
   cols_label(measure = md("Measure"), savings_per_unit = md("Savings per unit"), unit_difference = md("Unit"), cost_savings = md("Cost savings"))
 tab_dat_table
 gtsave(tab_dat_table, "tab_dat_table.png")   
-10*5680.56  
+
 ```
 Response rates
 Want telehealth_noms, because that is not merged yet.  
